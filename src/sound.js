@@ -82,12 +82,139 @@ function play(fn, gap = 45) {
   if (c) fn(c.currentTime + 0.005);
 }
 
+
+// ---------- ambient music: generated, never a file. Slow chords, a soft piano, a long room ----------
+let musicBus = null, musicTimer = 0, musicOn = false, nextChordAt = 0, chordIdx = 0, nextNoteAt = 0;
+// D dorian colours: Dm9, Bbmaj7, Fmaj7/A, C6/9 (Hz), each held for 8 seconds
+const CHORDS = [
+  [146.83, 174.61, 220.0, 261.63, 329.63],
+  [116.54, 174.61, 220.0, 293.66, 349.23],
+  [110.0, 174.61, 220.0, 261.63, 329.63],
+  [130.81, 196.0, 246.94, 293.66, 329.63],
+];
+const CHORD_LEN = 8;
+
+function room() {
+  // a three-second hall built from decaying noise
+  const len = ctx.sampleRate * 3;
+  const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6);
+  }
+  const conv = ctx.createConvolver();
+  conv.buffer = buf;
+  return conv;
+}
+
+function musicGraph() {
+  if (musicBus) return;
+  musicBus = ctx.createGain();
+  musicBus.gain.value = 0.0001;
+  const lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 2400;
+  const wet = ctx.createGain();
+  wet.gain.value = 0.55;
+  const verb = room();
+  musicBus.connect(lp);
+  lp.connect(master);
+  lp.connect(verb).connect(wet).connect(master);
+}
+
+function pad(t, freq, len) {
+  [-6, 6].forEach((cents) => {
+    const o = ctx.createOscillator();
+    o.type = 'triangle';
+    o.frequency.value = freq;
+    o.detune.value = cents;
+    const f = ctx.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.value = 900;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.05, t + 2.5);
+    g.gain.setValueAtTime(0.05, t + len - 2);
+    g.gain.linearRampToValueAtTime(0.0001, t + len + 1.5);
+    o.connect(f).connect(g).connect(musicBus);
+    o.start(t);
+    o.stop(t + len + 1.6);
+  });
+}
+
+function keyNote(t, freq, level = 0.09) {
+  // a felt-piano note: sine body, a quieter octave, quick bloom, long fade
+  [[1, level], [2, level * 0.25]].forEach(([mul, peak]) => {
+    const o = ctx.createOscillator();
+    o.type = 'sine';
+    o.frequency.value = freq * mul;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 3.2);
+    o.connect(g).connect(musicBus);
+    o.start(t);
+    o.stop(t + 3.3);
+  });
+}
+
+function scheduleMusic() {
+  const now = ctx.currentTime;
+  while (nextChordAt < now + 1) {
+    const chord = CHORDS[chordIdx % CHORDS.length];
+    pad(nextChordAt, chord[0] / 2, CHORD_LEN);              // low root
+    chord.slice(1, 4).forEach((f) => pad(nextChordAt, f, CHORD_LEN));
+    chordIdx++;
+    nextChordAt += CHORD_LEN;
+  }
+  while (nextNoteAt < now + 1) {
+    const chord = CHORDS[(chordIdx - 1 + CHORDS.length) % CHORDS.length];
+    const f = chord[1 + Math.floor(Math.random() * (chord.length - 1))] * (Math.random() < 0.4 ? 2 : 1);
+    keyNote(nextNoteAt, f, 0.05 + Math.random() * 0.05);
+    nextNoteAt += 1.2 + Math.random() * 2.4;                 // unhurried, never on a grid
+  }
+}
+
+function setMusic(on) {
+  if (!audio()) return;
+  musicGraph();
+  const t = ctx.currentTime;
+  musicBus.gain.cancelScheduledValues(t);
+  musicBus.gain.setValueAtTime(Math.max(musicBus.gain.value, 0.0001), t);
+  if (on && !musicOn) {
+    musicOn = true;
+    nextChordAt = Math.max(nextChordAt, t + 0.1);
+    nextNoteAt = Math.max(nextNoteAt, t + 1.5);
+    scheduleMusic();
+    musicTimer = setInterval(scheduleMusic, 400);
+    musicBus.gain.exponentialRampToValueAtTime(0.3, t + 4);   // the whole bed sits far under the UI sounds
+  } else if (!on && musicOn) {
+    musicOn = false;
+    clearInterval(musicTimer);
+    musicBus.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
+  }
+}
+
+// hidden tab: let the room go quiet; back again: pick up where it was
+document.addEventListener('visibilitychange', () => {
+  if (!ctx) return;
+  if (document.hidden) ctx.suspend();
+  else if (enabled) ctx.resume();
+});
+// a returning visitor who left sound on: start once the browser allows audio (first gesture)
+if (enabled) {
+  const start = () => { setMusic(true); window.removeEventListener('pointerdown', start); window.removeEventListener('keydown', start); };
+  window.addEventListener('pointerdown', start);
+  window.addEventListener('keydown', start);
+}
+
 export const sound = {
   get on() { return enabled; },
   set(on) {
     enabled = on;
     try { localStorage.setItem(KEY, on ? 'on' : 'off'); } catch { /* ignore */ }
     if (on) { audio(); play((t) => { tone(t, 660, 0.08, 0.12); tone(t + 0.07, 990, 0.06, 0.16); }, 0); }
+    setMusic(on);
   },
   move: () => play((t) => knock(t, 1 + (Math.random() - 0.5) * 0.08)),
   capture: () => play((t) => { knock(t, 1.05, 1); knock(t + 0.075, 0.82, 0.9); }),
