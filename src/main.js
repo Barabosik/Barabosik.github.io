@@ -108,6 +108,8 @@ function updateReadout(ply) {
 updateReadout(0);
 
 
+let boardSquare = () => null;
+
 // ---------- WebGL board (three.js arrives as its own chunk, after the text has painted) ----------
 const canvas = $('.stage');
 async function startBoard() {
@@ -156,25 +158,8 @@ async function startBoard() {
 
   window.addEventListener('pointermove', (e) => {
     board.pointer((e.clientX / window.innerWidth) * 2 - 1, (e.clientY / window.innerHeight) * 2 - 1);
-    cursorTo(e.clientX, e.clientY);
   }, { passive: true });
-  // a ring that names the square under it, only while the pointer is over the live board
-  const cursor = $(".cursor");
-  const cursorLabel = $('.cursor span');
-  const cx = cursor && gsap.quickTo(cursor, 'x', { duration: 0.35, ease: 'power3.out' });
-  const cy = cursor && gsap.quickTo(cursor, 'y', { duration: 0.35, ease: 'power3.out' });
-  let overUi = false;
-  function cursorTo(x, y) {
-    if (!cursor) return;
-    cx(x); cy(y);
-    const el = document.elementFromPoint(x, y);
-    overUi = !!el?.closest('a, button, .readout, .hero-foot, .hero-title, .top');
-  }
-  if (cursor) gsap.ticker.add(() => {
-    const sq = active && !overUi ? board.square : null;
-    cursor.classList.toggle('is-on', !!sq);
-    if (sq && cursorLabel.textContent !== sq) cursorLabel.textContent = sq;
-  });
+  boardSquare = () => (active ? board.square : null);
   document.documentElement.addEventListener('pointerleave', () => board.pointerOff());
   window.addEventListener('resize', () => board.resize());
   ScrollTrigger.refresh();
@@ -337,3 +322,82 @@ $$('[data-copy]').forEach((btn) => btn.addEventListener('click', async () => {
   }
   setTimeout(() => { btn.textContent = 'Copy email'; }, 1800);
 }));
+
+// ---------- the cursor: one ring that follows everywhere and says what a click will do ----------
+const fineHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+const cursor = $('.cursor');
+const cursorLabel = $('.cursor span');
+if (cursor && fineHover && !reduced) {
+  const cx = gsap.quickTo(cursor, 'x', { duration: 0.32, ease: 'power3.out' });
+  const cy = gsap.quickTo(cursor, 'y', { duration: 0.32, ease: 'power3.out' });
+  let mode = '', label = '';
+  window.addEventListener('pointermove', (e) => {
+    cx(e.clientX); cy(e.clientY);
+    cursor.classList.add('is-live');
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const tagged = el?.closest('[data-cursor]');
+    if (tagged) { mode = 'label'; label = tagged.dataset.cursor; }
+    else if (el?.closest('a, button')) { mode = 'link'; label = ''; }
+    else if (el?.closest('.readout, .hero-foot, .hero-title, .top, main section:not(.hero):not(.game)')) { mode = ''; label = ''; }
+    else { mode = 'board'; label = ''; }
+  }, { passive: true });
+  document.documentElement.addEventListener('pointerleave', () => cursor.classList.remove('is-live'));
+  gsap.ticker.add(() => {
+    const sq = mode === 'board' ? boardSquare() : null;
+    const text = mode === 'label' ? label : sq || '';
+    cursor.dataset.mode = mode === 'board' ? (sq ? 'square' : '') : mode;
+    if (cursorLabel.textContent !== text) cursorLabel.textContent = text;
+  });
+
+  // buttons lean toward the pointer, then spring back
+  $$('.button, .top nav a, .sound, .socials a').forEach((b) => {
+    const bx = gsap.quickTo(b, 'x', { duration: 0.5, ease: 'elastic.out(1, 0.5)' });
+    const by = gsap.quickTo(b, 'y', { duration: 0.5, ease: 'elastic.out(1, 0.5)' });
+    b.addEventListener('pointermove', (e) => {
+      const r = b.getBoundingClientRect();
+      bx((e.clientX - (r.left + r.width / 2)) * 0.25);
+      by((e.clientY - (r.top + r.height / 2)) * 0.3);
+    });
+    b.addEventListener('pointerleave', () => { bx(0); by(0); });
+  });
+
+  // a quiet invitation to turn the sound on: it trails the pointer for a few seconds over the hero
+  const pill = $('.sound-pill');
+  if (pill && !sound.on) {
+    const px = gsap.quickTo(pill, 'x', { duration: 0.6, ease: 'power3.out' });
+    const py = gsap.quickTo(pill, 'y', { duration: 0.6, ease: 'power3.out' });
+    let shown = false, done = false;
+    const hide = () => { if (done) return; done = true; pill.classList.remove('is-on'); hero.removeEventListener('click', onClick); };
+    const hero = $('.hero');
+    const onMove = (e) => {
+      if (done) return;
+      px(e.clientX + 22); py(e.clientY + 22);
+      if (!shown) { shown = true; pill.classList.add('is-on'); setTimeout(hide, 5000); }
+    };
+    const onClick = (e) => {
+      if (e.target.closest('a, button')) return;
+      sound.set(true); paintSound(); sound.press(); hide();
+    };
+    hero.addEventListener('pointermove', onMove, { passive: true });
+    hero.addEventListener('click', onClick);
+    window.addEventListener('scroll', () => { if (window.scrollY > 120) hide(); }, { passive: true });
+  }
+}
+
+// project images open the project, and say so under the cursor
+[['.project-chess', 'Open'], ['.project-tether', 'Play']].forEach(([sel, word]) => {
+  const href = $(`${sel} .button`)?.href;
+  $$(`${sel} [data-shot]`).forEach((fig) => {
+    fig.dataset.cursor = word;
+    if (href) fig.addEventListener('click', () => window.open(href, '_blank', 'noopener'));
+  });
+});
+
+// images bend a little with the speed of the scroll, and settle when it stops
+if (lenis && !reduced) {
+  const benders = $$('[data-shot] img').map((img) => gsap.quickTo(img, 'skewY', { duration: 0.6, ease: 'power3.out' }));
+  lenis.on('scroll', ({ velocity }) => {
+    const k = gsap.utils.clamp(-3.2, 3.2, velocity * 0.12);
+    benders.forEach((b) => b(k));
+  });
+}

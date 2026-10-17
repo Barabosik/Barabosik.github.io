@@ -181,6 +181,50 @@ export function createBoard(canvas, { reducedMotion = false } = {}) {
   mateLine.scale.y = 0.0001;
   board.add(mateLine);
 
+  // checkmate: a cone of light falls on the king's square, grounded by a soft pool on the board
+  const [kx, kz] = squareXZ('e8');
+  const coneMat = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
+    uniforms: { uI: { value: 0 }, uColor: { value: new THREE.Color(0xdff0e8) } },
+    vertexShader: `
+      varying float vH; varying vec3 vN; varying vec3 vV;
+      void main() {
+        vH = uv.y;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        vN = normalize(normalMatrix * normal);
+        vV = normalize(-mv.xyz);
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: `
+      uniform float uI; uniform vec3 uColor;
+      varying float vH; varying vec3 vN; varying vec3 vV;
+      void main() {
+        float face = pow(abs(dot(vN, vV)), 2.0);          // soft edges, bright core
+        float fall = smoothstep(1.0, 0.15, vH) * smoothstep(0.0, 0.08, vH);
+        gl_FragColor = vec4(uColor, face * fall * 0.22 * uI);
+      }`,
+  });
+  const cone = new THREE.Mesh(new THREE.ConeGeometry(1.15, 7, 48, 1, true), coneMat);
+  cone.geometry.rotateX(Math.PI);           // tip up, mouth on the board
+  cone.position.set(kx, 3.5, kz);
+  cone.visible = false;
+  board.add(cone);
+  const poolTex = (() => {
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const g = c.getContext('2d');
+    const r = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    r.addColorStop(0, 'rgba(223,240,232,0.9)'); r.addColorStop(0.5, 'rgba(223,240,232,0.25)'); r.addColorStop(1, 'rgba(223,240,232,0)');
+    g.fillStyle = r; g.fillRect(0, 0, 128, 128);
+    return new THREE.CanvasTexture(c);
+  })();
+  const pool = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.6, 2.6),
+    new THREE.MeshBasicMaterial({ map: poolTex, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }),
+  );
+  pool.rotation.x = -Math.PI / 2;
+  pool.position.set(kx, 0.015, kz);
+  board.add(pool);
+
   const geos = pieceGeometries();
   const mats = {
     white: new THREE.MeshPhysicalMaterial({ color: COLORS.bone, roughness: 0.34, clearcoat: 0.5, clearcoatRoughness: 0.3 }),
@@ -388,7 +432,11 @@ export function createBoard(canvas, { reducedMotion = false } = {}) {
     mateLine.scale.y = Math.max(0.0001, draw * (lz0 - lz1));
     mateLine.visible = draw > 0.001;
     // checkmate: the jade rim light swells as the king falls
-    rim.intensity = 1.6 + 2.4 * easeOut(clamp01((ply - 32.3) / 0.7));
+    const mateLight = easeOut(clamp01((ply - 32.3) / 0.7));
+    rim.intensity = 1.6 + 2.4 * mateLight;
+    coneMat.uniforms.uI.value = mateLight;
+    cone.visible = mateLight > 0.002;
+    pool.material.opacity = 0.35 * mateLight;
   }
 
   function frame() {
