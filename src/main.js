@@ -152,10 +152,14 @@ async function startBoard() {
     ScrollTrigger.refresh();
     return;
   }
-  let active = true;
+  let active = true, boardAcc = 99;
   gsap.ticker.add((_, dt) => {
     // the readout follows the eased ply the board actually draws, so text and pieces agree
-    if (active && !document.hidden) updateReadout(board.render(Math.min(dt, 50) / 1000));
+    if (!active || document.hidden) return;
+    boardAcc += dt;
+    if (boardAcc < 6.5) return;
+    updateReadout(board.render(Math.min(boardAcc, 50) / 1000));
+    boardAcc = 0;
   });
   if (!reduced) introReady.then(() => gsap.to(board, { intro: 1, duration: 2.1, ease: 'none', delay: 0.15 }));
 
@@ -401,24 +405,32 @@ $$('[data-copy]').forEach((btn) => btn.addEventListener('click', async () => {
 }));
 
 // ---------- the cursor ----------
-// A small dot that stretches with speed and wobbles like jelly when it stops. Over a control it lifts off the
-// pointer and wraps the control in a soft highlight (the iPad pointer); over reading text it becomes a caret;
-// over project images it says what a click does; over the board it names the square.
+// A drop of ink. It sits right under the pointer; moving, it thins and stretches along the stroke like a drop
+// of water; stopping, an underdamped spring lets it overshoot and wobble back to round. Over a control it lets
+// go of the pointer and wraps the control in a soft highlight; over reading text it becomes a caret; over
+// project images it names the click; over the board it rings the square. Only transforms move every frame.
 const cursor = $('.cursor');
 const cursorShape = $('.cursor i');
 const cursorLabel = $('.cursor span');
 if (cursor && fineHover && !reduced) {
   document.documentElement.classList.add('has-cursor');
-  const mouse = { x: -100, y: -100 }, pos = { x: -100, y: -100 };
-  const size = { w: 10, h: 10, r: 5 };
-  // jelly: an underdamped spring on the stretch, another on the press
-  const st = { v: 0, x: 0 }, pr = { v: 0, x: 1 };
-  let mode = '', label = '', target = null, live = false, down = false, ang = 0;
+  const BASE = 22;
+  const mouse = { x: -100, y: -100 }, last = { x: -100, y: -100 }, pos = { x: -100, y: -100 };
+  const vel = { x: 0, y: 0 };
+  const size = { w: BASE, h: BASE, r: BASE / 2 };
+  const drop = { s: 1, sv: 0, e: 0, ev: 0 };           // scale and stretch, each on its own spring
+  let mode = '', label = '', target = null, live = false, moved = false, down = false, ang = 0, lastW = '', lastH = '', lastR = '';
   window.addEventListener('pointermove', (e) => {
-    mouse.x = e.clientX; mouse.y = e.clientY;
-    if (!live) { pos.x = mouse.x; pos.y = mouse.y; live = true; }
-    cursor.classList.add('is-live');
-    const el = document.elementFromPoint(e.clientX, e.clientY);
+    mouse.x = e.clientX; mouse.y = e.clientY; moved = true;
+    if (!live) { pos.x = last.x = mouse.x; pos.y = last.y = mouse.y; live = true; cursor.classList.add('is-live'); }
+  }, { passive: true });
+  document.documentElement.addEventListener('pointerleave', () => cursor.classList.remove('is-live'));
+  document.documentElement.addEventListener('pointerenter', () => { if (live) cursor.classList.add('is-live'); });
+  window.addEventListener('pointerdown', () => { down = true; drop.sv -= 4; });
+  window.addEventListener('pointerup', () => { down = false; });
+  // what is under the pointer: asked once per frame at most, and only after it moved
+  const sense = () => {
+    const el = document.elementFromPoint(mouse.x, mouse.y);
     cursor.classList.toggle('on-light', !!el?.closest('.hire, .contact'));
     const tagged = el?.closest('[data-cursor]');
     target = null;
@@ -427,51 +439,55 @@ if (cursor && fineHover && !reduced) {
     else if (el?.closest('.hero-lead, .note, .about-text, .project p, .also, .contact-foot p, .legal, .secrets, td')) mode = 'text';
     else if (overBoard(el)) mode = 'board';
     else mode = '';
-  }, { passive: true });
-  document.documentElement.addEventListener('pointerleave', () => cursor.classList.remove('is-live'));
-  window.addEventListener('pointerdown', () => { down = true; });
-  window.addEventListener('pointerup', () => { down = false; });
+  };
+  const spring = (o, x, v, target, k, c, dt) => { o[v] += (k * (target - o[x]) - c * o[v]) * dt; o[x] += o[v] * dt; };
 
   gsap.ticker.add((_, dtMs) => {
     if (!live) return;
-    const dt = Math.min(dtMs, 50) / 1000;
+    const dt = Math.min(dtMs, 34) / 1000;
+    if (moved) { sense(); moved = false; }
     const grabbing = document.documentElement.classList.contains('is-grabbing');
     const sq = mode === 'board' ? boardSquare() : null;
     const m = grabbing ? 'grab' : mode === 'board' ? (sq ? 'square' : '') : mode;
-    let tx = mouse.x, ty = mouse.y, w = 10, h = 10, r = 5;
+
+    // pointer speed, smoothed so a 1000 Hz mouse on a 300 Hz screen does not jitter
+    const kv = 1 - Math.exp(-dt * 30);
+    vel.x += ((mouse.x - last.x) / dt - vel.x) * kv;
+    vel.y += ((mouse.y - last.y) / dt - vel.y) * kv;
+    last.x = mouse.x; last.y = mouse.y;
+    const speed = Math.hypot(vel.x, vel.y);
+    if (speed > 80) ang = Math.atan2(vel.y, vel.x);
+
+    let tx = mouse.x, ty = mouse.y, w = BASE, h = BASE, r = BASE / 2, follow = 70;
     if (m === 'link' && target) {
       const bx = target.getBoundingClientRect();
       const cx = bx.left + bx.width / 2, cy = bx.top + bx.height / 2;
       tx = cx + (mouse.x - cx) * 0.16;
       ty = cy + (mouse.y - cy) * 0.16;
-      w = bx.width + 22; h = bx.height + 14; r = Math.min(14, h / 2);
-    } else if (m === 'label') { w = h = 78; r = 39; }
-    else if (m === 'square') { w = h = 34; r = 17; }
-    else if (m === 'grab') { w = h = 30; r = 15; }
-    else if (m === 'text') { w = 3; h = 26; r = 2; }
-    // the dot is glued to the pointer; snapping onto a control is softer
-    const k = 1 - Math.exp(-dt * (m === 'link' ? 18 : 40));
-    const px = pos.x, py = pos.y;
+      w = bx.width + 22; h = bx.height + 14; r = Math.min(14, h / 2); follow = 20;
+    } else if (m === 'label') { w = h = 80; r = 40; }
+    else if (m === 'square' || m === 'grab') { w = h = 36; r = 18; }
+    else if (m === 'text') { w = 3; h = 28; r = 2; }
+    const k = 1 - Math.exp(-dt * follow);
     pos.x += (tx - pos.x) * k;
     pos.y += (ty - pos.y) * k;
-    const ks = 1 - Math.exp(-dt * 16);
+    const ks = 1 - Math.exp(-dt * 18);
     size.w += (w - size.w) * ks; size.h += (h - size.h) * ks; size.r += (r - size.r) * ks;
-    // stretch along the direction of travel, only as a free dot
-    const vx = (pos.x - px) / dt, vy = (pos.y - py) / dt;
-    const speed = Math.hypot(vx, vy);
-    if (speed > 40) ang = Math.atan2(vy, vx);
-    const want = m === '' ? Math.min(speed / 2400, 0.7) : 0;
-    st.v += (380 * (want - st.x) - 9 * st.v) * dt;
-    st.x += st.v * dt;
-    pr.v += (520 * ((down ? 0.78 : 1) - pr.x) - 14 * pr.v) * dt;
-    pr.x += pr.v * dt;
-    const sx = (1 + st.x) * pr.x, sy = (1 - st.x * 0.45) * pr.x;
-    cursor.dataset.mode = m;
-    cursor.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`;
-    cursorShape.style.width = `${size.w}px`;
-    cursorShape.style.height = `${size.h}px`;
-    cursorShape.style.borderRadius = `${size.r}px`;
-    cursorShape.style.transform = `translate(-50%, -50%) rotate(${m === '' ? ang : 0}rad) scale(${sx}, ${sy})`;
+
+    // the drop: smaller and longer the faster it goes; when it stops, the springs overshoot and wobble back
+    const free = m === '';
+    const fast = free ? Math.min(speed / 2200, 1) : 0;
+    spring(drop, 's', 'sv', (down ? 0.8 : 1) - fast * 0.35, 420, 11, dt);
+    spring(drop, 'e', 'ev', fast * 0.5, 380, 12, dt);
+    const sx = drop.s * (1 + drop.e), sy = drop.s * (1 - drop.e * 0.42);
+
+    cursor.style.transform = `translate3d(${pos.x.toFixed(2)}px, ${pos.y.toFixed(2)}px, 0)`;
+    const W = `${size.w.toFixed(1)}px`, H = `${size.h.toFixed(1)}px`, R = `${size.r.toFixed(1)}px`;
+    if (W !== lastW) { cursorShape.style.width = W; lastW = W; }
+    if (H !== lastH) { cursorShape.style.height = H; lastH = H; }
+    if (R !== lastR) { cursorShape.style.borderRadius = R; lastR = R; }
+    cursorShape.style.transform = `translate(-50%, -50%) rotate(${free ? ang.toFixed(3) : 0}rad) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
+    if (cursor.dataset.mode !== m) cursor.dataset.mode = m;
     const text = m === 'label' ? label : m === 'square' ? sq : '';
     if (cursorLabel.textContent !== text) cursorLabel.textContent = text;
   });
