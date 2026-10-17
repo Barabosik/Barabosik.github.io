@@ -134,7 +134,7 @@ async function startBoard() {
   let board = null;
   try {
     const { createBoard, webglAvailable } = await import('./board.js');
-    if (webglAvailable()) board = createBoard(canvas, {
+    if (webglAvailable()) board = await createBoard(canvas, {
       reducedMotion: reduced,
       onLand: (p, phase) => {
         if (phase === 'slam') { sound.slam(); buzz([20, 30, 20]); }
@@ -146,7 +146,7 @@ async function startBoard() {
   } catch (err) {
     console.warn('WebGL board unavailable', err);
   }
-  if (board) board.warm();
+  if (board) await board.warm();
   boardWarmed();
   if (!board) {
     document.documentElement.classList.add('no-webgl');
@@ -666,6 +666,7 @@ async function playIntro() {
   gsap.timeline({ delay: wait })
     .to(h1, { x: 0, y: 0, scale: 1, duration: 1.1, ease: 'expo.inOut' }, 0)
     .to(chars, { skewX: lean, scaleX: 1.06, duration: 0.45, ease: 'power2.in', stagger: { each: 0.018, from: 'end' } }, 0.05)
+    .add(() => html.classList.add('title-free'), 0.1)      // the rise is over: let the leaning letters out of their masks
     .add(() => { html.classList.add('intro-done'); introDone(); }, 0.5)
     .fromTo(chars, { skewX: lean, scaleX: 1.14, scaleY: 0.8 }, {
       skewX: 0, scaleX: 1, scaleY: 1, duration: 1.5, ease: 'elastic.out(1.1, 0.26)', stagger: 0.035, immediateRender: false,
@@ -673,7 +674,6 @@ async function playIntro() {
     .add(() => {
       lenis?.start();
       gsap.set(h1, { clearProps: 'transform' });
-      html.classList.add('title-free');
       lettersLive = true;
     }, 1.6)
     .add(() => html.classList.remove('is-intro', 'intro-go', 'intro-done'), 2.6);

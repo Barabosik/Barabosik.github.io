@@ -129,7 +129,10 @@ const SHIFT = {
   tall: { hero: [0, 0.3], game: [0, 0.1] },
 };
 
-export function createBoard(canvas, { reducedMotion = false, onLand = null, onTurn = null } = {}) {
+// building the board is split into short steps with a breath between them, so the page never freezes for long
+const breathe = () => new Promise((r) => setTimeout(r, 0));
+
+export async function createBoard(canvas, { reducedMotion = false, onLand = null, onTurn = null } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -142,6 +145,7 @@ export function createBoard(canvas, { reducedMotion = false, onLand = null, onTu
   scene.fog = new THREE.Fog(COLORS.bg, 16, 34);
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  await breathe();
   scene.environmentIntensity = 0.42;
 
   const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 80);
@@ -261,7 +265,9 @@ export function createBoard(canvas, { reducedMotion = false, onLand = null, onTu
   pool.position.set(kx, 0.015, kz);
   board.add(pool);
 
+  await breathe();
   const geos = pieceGeometries();
+  await breathe();
   const mats = {
     white: new THREE.MeshPhysicalMaterial({ color: COLORS.bone, roughness: 0.34, clearcoat: 0.5, clearcoatRoughness: 0.3 }),
     black: new THREE.MeshPhysicalMaterial({ color: COLORS.ebony, roughness: 0.3, clearcoat: 0.7, clearcoatRoughness: 0.22 }),
@@ -289,6 +295,7 @@ export function createBoard(canvas, { reducedMotion = false, onLand = null, onTu
   const small = window.matchMedia('(max-width: 760px), (pointer: coarse)').matches;
   const pr = () => renderer.getPixelRatio();
 
+  await breathe();
   // ---------- coordinates: a-h and 1-8 set in mono on the rim of the board ----------
   const coordMat = [];
   function coordLabel(text, x, z) {
@@ -375,10 +382,12 @@ export function createBoard(canvas, { reducedMotion = false, onLand = null, onTu
   dust.frustumCulled = false;
   scene.add(dust);
 
+  await breathe();
   // every piece that will be taken gets a cloud sampled from its own surface
   const grains = small ? 220 : 520;
   for (const p of pieces) {
     if (p.capturedAt === null) continue;
+    await breathe();
     const sampler = new MeshSurfaceSampler(new THREE.Mesh(geos[p.type])).build();
     const pos = new Float32Array(grains * 3), rnd = new Float32Array(grains * 4);
     const v = new THREE.Vector3();
@@ -399,6 +408,7 @@ export function createBoard(canvas, { reducedMotion = false, onLand = null, onTu
     p.cloud = cloud;
   }
 
+  await breathe();
   // ---------- state ----------
   // scroll writes targets (heroT, gameT, plyT); each frame eases the drawn values toward them,
   // so fast scrubbing and direction changes stay fluid instead of stepping with every wheel tick
@@ -732,10 +742,13 @@ export function createBoard(canvas, { reducedMotion = false, onLand = null, onTu
     pointerOff() { state.pointerOn = false; state.hover = null; },
     // draw one hidden frame with everything switched on, so every shader (pieces, burns, embers, shadows)
     // compiles now, behind the black screen, instead of stalling the first frames people actually see
-    warm() {
+    async warm() {
       const off = [];
       scene.traverse((o) => { if (!o.visible) { off.push(o); o.visible = true; } });
       frame();
+      // compile in the background where the GPU driver allows it, then one real frame for the shadow pass
+      try { await renderer.compileAsync(scene, camera); } catch { /* older drivers: the render below compiles */ }
+      await breathe();
       renderer.render(scene, camera);
       off.forEach((o) => { o.visible = false; });
     },
