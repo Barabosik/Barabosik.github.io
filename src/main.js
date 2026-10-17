@@ -405,30 +405,38 @@ $$('[data-copy]').forEach((btn) => btn.addEventListener('click', async () => {
 }));
 
 // ---------- the cursor ----------
-// A drop of ink. It sits right under the pointer; moving, it thins and stretches along the stroke like a drop
-// of water; stopping, an underdamped spring lets it overshoot and wobble back to round. Over a control it lets
-// go of the pointer and wraps the control in a soft highlight; over reading text it becomes a caret; over
-// project images it names the click; over the board it rings the square. Only transforms move every frame.
+// A drop of ink glued to the pointer. Position comes from the browser's predicted pointer (the same trick
+// drawing apps use to hide latency); speed and direction come from the full-rate mouse path, not one sample a
+// frame. Moving, the drop smears along its path and blurs with speed; stopping, one soft overshoot and it is
+// round again. Over a control it wraps the control in a highlight; over text it is a caret; over project
+// images it names the click; over the board it rings the square. Only transforms (and a small blur) change.
 const cursor = $('.cursor');
 const cursorShape = $('.cursor i');
 const cursorLabel = $('.cursor span');
 if (cursor && fineHover && !reduced) {
   document.documentElement.classList.add('has-cursor');
   const BASE = 22;
-  const mouse = { x: -100, y: -100 }, last = { x: -100, y: -100 }, pos = { x: -100, y: -100 };
+  const mouse = { x: -100, y: -100 }, pos = { x: -100, y: -100 };
+  const path = [];                                   // recent raw samples: [t, x, y]
   const vel = { x: 0, y: 0 };
   const size = { w: BASE, h: BASE, r: BASE / 2 };
-  const drop = { s: 1, sv: 0, e: 0, ev: 0 };           // scale and stretch, each on its own spring
-  let mode = '', label = '', target = null, live = false, moved = false, down = false, ang = 0, lastW = '', lastH = '', lastR = '';
+  const drop = { s: 1, sv: 0, e: 0, ev: 0 };
+  let ox = 1, oy = 0;                                // orientation as a doubled-angle vector: never flips
+  let mode = '', label = '', target = null, live = false, moved = false, down = false;
+  let lastW = '', lastH = '', lastR = '', lastBlur = -1;
   window.addEventListener('pointermove', (e) => {
-    mouse.x = e.clientX; mouse.y = e.clientY; moved = true;
-    if (!live) { pos.x = last.x = mouse.x; pos.y = last.y = mouse.y; live = true; cursor.classList.add('is-live'); }
+    const raw = e.getCoalescedEvents?.() || [];
+    (raw.length ? raw : [e]).forEach((c) => path.push([c.timeStamp || performance.now(), c.clientX, c.clientY]));
+    const ahead = e.getPredictedEvents?.() || [];
+    const lead = ahead.length ? ahead[ahead.length - 1] : e;
+    mouse.x = lead.clientX; mouse.y = lead.clientY;
+    moved = true;
+    if (!live) { pos.x = mouse.x; pos.y = mouse.y; live = true; cursor.classList.add('is-live'); }
   }, { passive: true });
   document.documentElement.addEventListener('pointerleave', () => cursor.classList.remove('is-live'));
   document.documentElement.addEventListener('pointerenter', () => { if (live) cursor.classList.add('is-live'); });
-  window.addEventListener('pointerdown', () => { down = true; drop.sv -= 4; });
+  window.addEventListener('pointerdown', () => { down = true; });
   window.addEventListener('pointerup', () => { down = false; });
-  // what is under the pointer: asked once per frame at most, and only after it moved
   const sense = () => {
     const el = document.elementFromPoint(mouse.x, mouse.y);
     cursor.classList.toggle('on-light', !!el?.closest('.hire, .contact'));
@@ -440,7 +448,8 @@ if (cursor && fineHover && !reduced) {
     else if (overBoard(el)) mode = 'board';
     else mode = '';
   };
-  const spring = (o, x, v, target, k, c, dt) => { o[v] += (k * (target - o[x]) - c * o[v]) * dt; o[x] += o[v] * dt; };
+  // damped spring with a damping ratio, so "one soft overshoot" is a number, not a guess
+  const spring = (o, x, v, goal, k, zeta, dt) => { o[v] += (k * (goal - o[x]) - 2 * zeta * Math.sqrt(k) * o[v]) * dt; o[x] += o[v] * dt; };
 
   gsap.ticker.add((_, dtMs) => {
     if (!live) return;
@@ -450,43 +459,57 @@ if (cursor && fineHover && !reduced) {
     const sq = mode === 'board' ? boardSquare() : null;
     const m = grabbing ? 'grab' : mode === 'board' ? (sq ? 'square' : '') : mode;
 
-    // pointer speed, smoothed so a 1000 Hz mouse on a 300 Hz screen does not jitter
-    const kv = 1 - Math.exp(-dt * 30);
-    vel.x += ((mouse.x - last.x) / dt - vel.x) * kv;
-    vel.y += ((mouse.y - last.y) / dt - vel.y) * kv;
-    last.x = mouse.x; last.y = mouse.y;
+    // velocity over the last ~32 ms of the real path; nothing new for 40 ms means the hand has stopped
+    const now = performance.now();
+    while (path.length > 2 && now - path[0][0] > 32) path.shift();
+    let vx = 0, vy = 0;
+    const a = path[0], b = path[path.length - 1];
+    if (b && now - b[0] < 40 && b[0] - a[0] > 3) { vx = ((b[1] - a[1]) * 1000) / (b[0] - a[0]); vy = ((b[2] - a[2]) * 1000) / (b[0] - a[0]); }
+    const kv = 1 - Math.exp(-dt * 45);
+    vel.x += (vx - vel.x) * kv;
+    vel.y += (vy - vel.y) * kv;
     const speed = Math.hypot(vel.x, vel.y);
-    if (speed > 80) ang = Math.atan2(vel.y, vel.x);
+    if (speed > 30) {
+      const c2 = (vel.x * vel.x - vel.y * vel.y) / (speed * speed), s2 = (2 * vel.x * vel.y) / (speed * speed);
+      const ko = 1 - Math.exp(-dt * 28);
+      ox += (c2 - ox) * ko; oy += (s2 - oy) * ko;
+    }
+    const ang = Math.atan2(oy, ox) / 2;
 
-    let tx = mouse.x, ty = mouse.y, w = BASE, h = BASE, r = BASE / 2, follow = 70;
+    let tx = mouse.x, ty = mouse.y, w = BASE, h = BASE, r = BASE / 2;
+    let follow = 0;                                  // 0: glued to the pointer
     if (m === 'link' && target) {
       const bx = target.getBoundingClientRect();
       const cx = bx.left + bx.width / 2, cy = bx.top + bx.height / 2;
       tx = cx + (mouse.x - cx) * 0.16;
       ty = cy + (mouse.y - cy) * 0.16;
-      w = bx.width + 22; h = bx.height + 14; r = Math.min(14, h / 2); follow = 20;
+      w = bx.width + 22; h = bx.height + 14; r = Math.min(14, h / 2); follow = 22;
     } else if (m === 'label') { w = h = 80; r = 40; }
     else if (m === 'square' || m === 'grab') { w = h = 36; r = 18; }
     else if (m === 'text') { w = 3; h = 28; r = 2; }
-    const k = 1 - Math.exp(-dt * follow);
-    pos.x += (tx - pos.x) * k;
-    pos.y += (ty - pos.y) * k;
+    // leaving a control the drop slides home quickly, then glues on
+    const dist = Math.hypot(tx - pos.x, ty - pos.y);
+    if (!follow && dist > 1.5) follow = 60;
+    if (follow) { const k = 1 - Math.exp(-dt * follow); pos.x += (tx - pos.x) * k; pos.y += (ty - pos.y) * k; }
+    else { pos.x = tx; pos.y = ty; }
     const ks = 1 - Math.exp(-dt * 18);
     size.w += (w - size.w) * ks; size.h += (h - size.h) * ks; size.r += (r - size.r) * ks;
 
-    // the drop: smaller and longer the faster it goes; when it stops, the springs overshoot and wobble back
+    // the drop: smears along its path and slims a little with speed; one soft overshoot when it stops
     const free = m === '';
-    const fast = free ? Math.min(speed / 2200, 1) : 0;
-    spring(drop, 's', 'sv', (down ? 0.8 : 1) - fast * 0.35, 420, 11, dt);
-    spring(drop, 'e', 'ev', fast * 0.5, 380, 12, dt);
-    const sx = drop.s * (1 + drop.e), sy = drop.s * (1 - drop.e * 0.42);
+    const f = free ? Math.min(speed / 1800, 1) : 0;
+    spring(drop, 'e', 'ev', f * 0.85, 520, 0.42, dt);
+    spring(drop, 's', 'sv', (down ? 0.8 : 1) - f * 0.16, 520, 0.5, dt);
+    const sx = drop.s * (1 + drop.e), sy = drop.s * (1 - drop.e * 0.32);
+    const blur = free ? Math.round(Math.min(speed / 1400, 1) * 22) / 10 : 0;
 
     cursor.style.transform = `translate3d(${pos.x.toFixed(2)}px, ${pos.y.toFixed(2)}px, 0)`;
     const W = `${size.w.toFixed(1)}px`, H = `${size.h.toFixed(1)}px`, R = `${size.r.toFixed(1)}px`;
     if (W !== lastW) { cursorShape.style.width = W; lastW = W; }
     if (H !== lastH) { cursorShape.style.height = H; lastH = H; }
     if (R !== lastR) { cursorShape.style.borderRadius = R; lastR = R; }
-    cursorShape.style.transform = `translate(-50%, -50%) rotate(${free ? ang.toFixed(3) : 0}rad) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
+    if (blur !== lastBlur) { cursorShape.style.filter = blur ? `blur(${blur}px)` : ''; lastBlur = blur; }
+    cursorShape.style.transform = `translate(-50%, -50%) rotate(${free ? ang.toFixed(4) : 0}rad) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
     if (cursor.dataset.mode !== m) cursor.dataset.mode = m;
     const text = m === 'label' ? label : m === 'square' ? sq : '';
     if (cursorLabel.textContent !== text) cursorLabel.textContent = text;
