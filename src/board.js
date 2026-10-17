@@ -80,6 +80,42 @@ function pieceGeometries() {
   };
 }
 
+// ---------- capture: the piece burns away from the crown down, with a jade edge ----------
+// dissolveD() gives every point on a piece the moment the burn reaches it (0 first, 1 last): mostly height,
+// broken up by two octaves of noise. The mesh discards behind the edge; the embers leave from it.
+const NOISE = `
+  float hash3(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+  float vnoise(vec3 x) {
+    vec3 i = floor(x), f = fract(x);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(mix(hash3(i), hash3(i + vec3(1, 0, 0)), f.x), mix(hash3(i + vec3(0, 1, 0)), hash3(i + vec3(1, 1, 0)), f.x), f.y),
+               mix(mix(hash3(i + vec3(0, 0, 1)), hash3(i + vec3(1, 0, 1)), f.x), mix(hash3(i + vec3(0, 1, 1)), hash3(i + vec3(1, 1, 1)), f.x), f.y), f.z);
+  }
+  float dissolveD(vec3 p) {
+    float h = clamp(p.y / 1.15, 0.0, 1.0);
+    float n = 0.65 * vnoise(p * 7.0) + 0.35 * vnoise(p * 16.0);
+    return n * 0.55 + (1.0 - h) * 0.45;
+  }
+`;
+
+function burnable(base, uT, depth = false) {
+  const m = depth ? new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking }) : base.clone();
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uT = uT;
+    sh.vertexShader = 'varying vec3 vPos;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvPos = position;');
+    let f = sh.fragmentShader.replace('#include <clipping_planes_fragment>',
+      '#include <clipping_planes_fragment>\nfloat dd = dissolveD(vPos) - uT;\nif (dd < 0.0) discard;');
+    // ahead of the edge the surface scorches dark, so the jade line reads on bone and ebony alike
+    if (!depth) f = f.replace('#include <color_fragment>',
+      '#include <color_fragment>\nfloat burnOn = step(0.0, uT);\ndiffuseColor.rgb *= mix(1.0, mix(0.06, 1.0, smoothstep(0.02, 0.16, dd)), burnOn);')
+      .replace('#include <emissivemap_fragment>',
+        '#include <emissivemap_fragment>\ntotalEmissiveRadiance += (vec3(0.85, 1.0, 0.93) * (1.0 - smoothstep(0.0, 0.012, dd)) * 5.0 + vec3(0.25, 0.85, 0.6) * (1.0 - smoothstep(0.0, 0.045, dd)) * 3.0) * burnOn;');
+    sh.fragmentShader = 'uniform float uT;\nvarying vec3 vPos;\n' + NOISE + f;
+  };
+  m.customProgramCacheKey = () => (depth ? 'burn-depth' : 'burn');
+  return m;
+}
+
 // ---------- camera framing ----------
 // Spherical framing around a look target, plus a screen-space shift so the board can sit
 // beside the text instead of under it.
@@ -231,13 +267,20 @@ export function createBoard(canvas, { reducedMotion = false, onLand = null, onTu
     black: new THREE.MeshPhysicalMaterial({ color: COLORS.ebony, roughness: 0.3, clearcoat: 0.7, clearcoatRoughness: 0.22 }),
   };
   const meshes = [];
+  const pieceMats = [mats.white, mats.black];
   const pieces = buildTracks().map((p) => {
-    const mesh = new THREE.Mesh(geos[p.type], p.white ? mats.white : mats.black);
+    const base = p.white ? mats.white : mats.black;
+    const uT = { value: -1 };
+    const mesh = new THREE.Mesh(geos[p.type], p.capturedAt === null ? base : burnable(base, uT));
+    if (p.capturedAt !== null) {
+      mesh.customDepthMaterial = burnable(null, uT, true);
+      pieceMats.push(mesh.material);
+    }
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     if (p.type === 'n') mesh.rotation.y = p.white ? Math.PI / 2 : -Math.PI / 2;
     board.add(mesh);
-    const piece = { ...p, mesh, rank: Number(p.start[1]), lift: 0, liftV: 0, air: -1, baseRotY: mesh.rotation.y };
+    const piece = { ...p, mesh, uT, rank: Number(p.start[1]), lift: 0, liftV: 0, air: -1, baseRotY: mesh.rotation.y };
     mesh.userData.piece = piece;
     meshes.push(mesh);
     return piece;
@@ -276,7 +319,7 @@ export function createBoard(canvas, { reducedMotion = false, onLand = null, onTu
   document.fonts?.load('500 40px "Geist Mono"').then(() => coordMat.forEach((d) => d()));
 
   // ---------- particles ----------
-  const pointVert = `
+  const pointVert = NOISE + `
     attribute vec4 aRand;
     uniform float uK, uSize, uPr, uTime, uDust;
     varying float vAlpha;
@@ -290,18 +333,17 @@ export function createBoard(canvas, { reducedMotion = false, onLand = null, onTu
         p.z += cos(uTime * 0.11 + aRand.y * 6.28) * 0.35;
         vAlpha = 0.5 * smoothstep(0.2, 0.9, p.y) * (1.0 - smoothstep(3.2, 4.4, p.y)) * (0.5 + 0.5 * aRand.z);
       } else {
-        // a captured piece comes apart: each grain leaves on its own delay, lifts and curls away
-        k = clamp((uK - aRand.w * 0.35) / 0.65, 0.0, 1.0);
-        float ease = 1.0 - pow(1.0 - k, 3.0);
-        p += normalize(aRand.xyz - 0.5) * ease * 1.25;
-        p.y += ease * ease * 2.2;
-        float a = ease * 4.0 + aRand.w * 6.28;
-        p.xz += vec2(cos(a), sin(a)) * ease * 0.22;
-        vAlpha = (1.0 - k * k) * 0.85 * step(0.001, uK);
+        // an ember: it waits for the burn edge to reach its spot on the piece, then rises and goes out
+        k = clamp((uK - dissolveD(position)) / (0.3 + aRand.w * 0.2), 0.0, 1.0);
+        float e = 1.0 - pow(1.0 - k, 2.0);
+        p.y += e * (0.45 + aRand.w * 0.55);
+        float a = aRand.x * 6.28 + k * 2.5;
+        p.xz += vec2(cos(a), sin(a)) * e * 0.1 + (aRand.yz - 0.5) * e * 0.3;
+        vAlpha = step(0.001, k) * (1.0 - k) * (1.0 - k) * 1.3;
       }
       vec4 mv = modelViewMatrix * vec4(p, 1.0);
       gl_Position = projectionMatrix * mv;
-      gl_PointSize = uSize * uPr * (1.0 - 0.4 * k) * (10.0 / -mv.z);
+      gl_PointSize = uSize * uPr * (1.0 - 0.7 * k) * (10.0 / -mv.z);
     }`;
   const pointFrag = `
     uniform vec3 uColor;
@@ -334,7 +376,7 @@ export function createBoard(canvas, { reducedMotion = false, onLand = null, onTu
   scene.add(dust);
 
   // every piece that will be taken gets a cloud sampled from its own surface
-  const grains = small ? 700 : 1600;
+  const grains = small ? 220 : 520;
   for (const p of pieces) {
     if (p.capturedAt === null) continue;
     const sampler = new MeshSurfaceSampler(new THREE.Mesh(geos[p.type])).build();
@@ -348,7 +390,8 @@ export function createBoard(canvas, { reducedMotion = false, onLand = null, onTu
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     g.setAttribute('aRand', new THREE.BufferAttribute(rnd, 4));
-    const mat = pointsMaterial(p.white ? 0xe3e2da : 0x9fc7b8, 5.2, 0, true);
+    const mat = pointsMaterial(0xb8f0d8, 6.0, 0, true);
+    mat.uniforms.uK = p.uT;
     const cloud = new THREE.Points(g, mat);
     cloud.visible = false;
     cloud.frustumCulled = false;
@@ -413,19 +456,17 @@ export function createBoard(canvas, { reducedMotion = false, onLand = null, onTu
           y = Math.sin(Math.PI * t) * (p.type === 'n' ? 0.9 : 0.28);
         }
       }
-      let s = 1;
+      const s = 1;
       if (p.cloud) {
-        const k = clamp01((ply - p.capturedAt - 0.5) / 0.9);
-        p.cloud.visible = k > 0 && k < 1;
+        const k = Math.min(1.5, Math.max(0, (ply - p.capturedAt - 0.4) / 0.9));
+        p.uT.value = k > 0 ? k * 1.1 - 0.02 : -1;
+        p.cloud.visible = k > 0 && k < 1.5;
         if (p.cloud.visible) {
-          p.cloud.position.set(x, 0, z);
+          p.cloud.position.set(x, y, z);
           p.cloud.rotation.y = p.mesh.rotation.y;
-          p.cloud.material.uniforms.uK.value = k;
           p.cloud.material.uniforms.uPr.value = pr();
         }
-        // the solid piece gives way to its grains over the first third of the dissolve
-        s = 1 - easeOut(clamp01(k / 0.32));
-        if (s < 0.02) y = -5;
+        if (p.uT.value > 1.02) y = -5;
       }
       if (p === blackKing) tilt = easeOut(clamp01((ply - 32.5) / 0.5)) * 1.38;
       // intro: pieces rise out of the board, back ranks first
@@ -678,7 +719,7 @@ export function createBoard(canvas, { reducedMotion = false, onLand = null, onTu
     // terminal mode: the whole set drawn as wire
     toggleWire() {
       const on = !mats.white.wireframe;
-      [mats.white, mats.black, tiles.material, slab.material].forEach((mt) => { mt.wireframe = on; });
+      [...pieceMats, tiles.material, slab.material].forEach((mt) => { mt.wireframe = on; });
       return on;
     },
     dispose() { renderer.dispose(); },
