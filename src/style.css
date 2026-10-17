@@ -229,25 +229,24 @@ main, .foot { position: relative; z-index: 1; }
 .cursor.is-live { opacity: 1; }
 /* the shape: white with difference blending, so it inverts whatever it sits on (bone on dark, ink on jade) */
 .cursor i {
-  position: absolute; left: 0; top: 0; display: block; width: 22px; height: 22px; border-radius: 11px;
-  background: #fff; mix-blend-mode: difference; will-change: transform;
-  transition: background-color 220ms ease, box-shadow 220ms ease;
+  position: absolute; left: 0; top: 0; display: block; width: 14px; height: 14px; border-radius: 7px;
+  translate: -50% -50%; opacity: 0; will-change: transform;
+  transition: opacity 180ms ease, background-color 220ms ease, box-shadow 220ms ease;
 }
 .cursor span {
   position: absolute; left: 0; top: 0; translate: -50% -50%; white-space: nowrap; pointer-events: none;
   font-family: var(--mono); font-size: 0.75rem; font-weight: 500; color: var(--accent); font-variant-numeric: tabular-nums;
 }
 /* on a control: a quiet highlight wrapped around it, no inversion */
-.cursor[data-mode="link"] i { background: color-mix(in oklab, var(--ink) 13%, transparent); mix-blend-mode: normal; }
+.cursor[data-mode="link"] i, .cursor[data-mode="label"] i, .cursor[data-mode="square"] i { opacity: 1; }
+.cursor[data-mode="link"] i { background: color-mix(in oklab, var(--ink) 13%, transparent); }
 .cursor[data-mode="link"].on-light i { background: color-mix(in oklab, var(--bg) 14%, transparent); }
 /* on project images: a jade disc that names the click */
-.cursor[data-mode="label"] i { background: var(--accent); mix-blend-mode: normal; }
+.cursor[data-mode="label"] i { background: var(--accent); }
 .cursor[data-mode="label"] span { color: var(--accent-ink); font-family: var(--text); font-weight: 600; font-size: 0.8125rem; }
 /* on the board: a jade ring with the square beside it */
-.cursor[data-mode="square"] i, .cursor[data-mode="grab"] i { background: transparent; box-shadow: inset 0 0 0 1.5px #fff; }
+.cursor[data-mode="square"] i { background: transparent; box-shadow: inset 0 0 0 1.5px #fff; mix-blend-mode: difference; }
 .cursor[data-mode="square"] span { translate: 26px -50%; color: #fff; mix-blend-mode: difference; font-weight: 600; }
-.cursor[data-mode="text"] i { background: var(--accent); mix-blend-mode: normal; }
-.has-cursor, .has-cursor * { cursor: none !important; }
 @media (hover: none), (pointer: coarse) { .cursor, .sound-pill { display: none; } }
 [data-cursor] { cursor: pointer; }
 
