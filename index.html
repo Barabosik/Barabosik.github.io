@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Nikita Andreiev, software engineer and security researcher</title>
+  <meta name="description" content="Nikita Andreiev is a software engineer and security researcher in Saarbrücken. He writes hidden-test tasks for AI code, tests web apps for broken access control, and builds a browser chess analyzer and a grapple-swing platformer.">
+  <meta name="theme-color" content="#161c1a">
+  <meta property="og:title" content="Nikita Andreiev">
+  <meta property="og:description" content="Software engineer and security researcher in Saarbrücken.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders:wght@700;800&family=Public+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <script>document.documentElement.classList.add('js')</script>
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <a class="skip" href="#about">Skip to content</a>
+
+  <canvas class="stage" aria-hidden="true"></canvas>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="top">
+    <a class="wordmark" href="#top">Nikita Andreiev</a>
+    <div class="top-right">
+      <nav aria-label="Sections">
+        <a href="#work">Work</a>
+        <a href="#experience">Experience</a>
+        <a href="#contact">Contact</a>
+      </nav>
+      <button class="sound" type="button" aria-pressed="false">
+        <span class="bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        <span class="sound-label">Sound off</span>
+      </button>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero" aria-labelledby="hero-title">
+      <h1 id="hero-title" class="hero-title lines">
+        <span class="line"><span data-line style="--i:0">Nikita</span></span>
+        <span class="line"><span data-line style="--i:1">Andreiev</span></span>
+      </h1>
+      <div class="hero-foot">
+        <p class="hero-lead" data-rise style="--i:2">Software engineer and security researcher in Saarbrücken. I write the tests that tell a right answer from a wrong one: for AI-generated code, for web apps, for chess moves.</p>
+        <div class="actions" data-rise style="--i:3">
+          <a class="button" href="mailto:thezloynikitan@gmail.com?subject=Hello%20Nikita">Email me</a>
+          <a class="link" href="#work">See the work</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="game" aria-label="The Opera Game, played as you scroll">
+      <div class="game-pin">
+        <div class="readout">
+          <p class="move" aria-live="polite"><span class="move-text">Paris, 1858</span></p>
+          <p class="note">Paris, 1858. Paul Morphy plays the Duke of Brunswick and Count Isouard, together, in a box at the opera.</p>
+          <p class="movelist" aria-label="Moves of the game"></p>
+          <p class="caption">Scroll to play the game. <a href="https://barabosik.github.io/chess-analyzer/">My chess analyzer</a> reviews games like this one, move by move, in your browser.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="about" class="about">
+      <div class="about-row">
+        <dl class="facts" data-stagger>
+          <div><dt>Based in</dt><dd>Saarbrücken, Germany</dd></div>
+          <div><dt>From</dt><dd>Kyiv, Ukraine</dd></div>
+          <div><dt>Speaks</dt><dd>Ukrainian, Russian, English, German</dd></div>
+        </dl>
+        <p class="about-text" data-reveal>I spend most days trying to prove code wrong. I write engineering tasks whose hidden tests pass a correct solution and fail a plausible wrong one, review AI-generated code for the bugs it hides, and test web apps for broken access control. In between I build the things I want to exist: a chess analyzer that runs Stockfish in your browser, and a platformer about a rope.</p>
+      </div>
+      <div class="about-row record">
+        <p class="record-word">Works with</p>
+        <ul class="record-list" data-stagger>
+          <li><span>Java, Spring Boot</span><span>Backend</span></li>
+          <li><span>Python</span><span>Services, tooling</span></li>
+          <li><span>TypeScript, JavaScript</span><span>Browser</span></li>
+          <li><span>SQL, PostgreSQL</span><span>Data</span></li>
+          <li><span>WebAssembly, Web Workers</span><span>Engines</span></li>
+        </ul>
+        <ul class="record-list" data-stagger>
+          <li><span>Docker, Linux</span><span>Sandboxes</span></li>
+          <li><span>JUnit, pytest</span><span>Tests</span></li>
+          <li><span>REST, GraphQL</span><span>APIs</span></li>
+          <li><span>Git, GitHub</span><span>Everything</span></li>
+          <li><span>Claude Code, Codex</span><span>Daily</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="work" class="work" aria-label="Work">
+      <article class="project project-chess">
+        <div class="project-text" data-stagger>
+          <h2 class="project-title">Chess Analyzer</h2>
+          <p>A full Stockfish 18 game review that runs entirely in your browser through WebAssembly. Import a game from Chess.com or Lichess and every move gets classified, from brilliant to blunder, with accuracy by phase and live engine lines. Nothing leaves your device.</p>
+          <p class="project-meta">JavaScript, WebAssembly, Web Workers. Share links are 63% shorter thanks to gzip.</p>
+          <div class="actions">
+            <a class="button" href="https://barabosik.github.io/chess-analyzer/">Open the analyzer</a>
+            <a class="link" href="https://github.com/Barabosik/chess-analyzer">Source</a>
+          </div>
+        </div>
+        <figure class="shot shot-main" data-shot>
+          <img src="/img/chess-board.webp" width="1200" height="1062" alt="Chess Analyzer reviewing a game: the board on a brilliant bishop sacrifice, both accuracy scores, the classified move list and the engine's top lines." loading="lazy">
+        </figure>
+        <figure class="shot shot-side" data-shot>
+          <img src="/img/chess-eval.webp" width="1200" height="390" alt="Chess Analyzer's evaluation graph over a whole game next to accuracy by opening, middlegame and endgame for both players." loading="lazy">
+        </figure>
+      </article>
+
+      <article class="project project-tether">
+        <figure class="shot shot-wide" data-shot>
+          <img src="/img/tether-2.webp" width="1528" height="862" alt="TETHER, level one: the hooded player stands on a ledge before a gap, with tutorial hints about grappling the ring." loading="lazy">
+        </figure>
+        <div class="project-text" data-stagger>
+          <h2 class="project-title">TETHER</h2>
+          <p>A grapple-swing precision platformer in a single HTML file. Five verbs (swing, release, dash, attack, steer) and nineteen hand-tuned levels across three worlds, each with a boss. Ghost replays, a level editor with JSON import and export, and a pipeline that checks every level can be finished.</p>
+          <div class="actions">
+            <a class="button" href="https://barabosik.github.io/tether-demo/">Play the demo</a>
+            <a class="link" href="https://github.com/Barabosik/tether-demo">Source</a>
+          </div>
+        </div>
+        <figure class="shot shot-small" data-shot>
+          <img src="/img/tether-1.webp" width="1528" height="862" alt="TETHER, level one: hearts, the level timer with its S-rank target, the dash meter, and the first grapple ring ahead." loading="lazy">
+        </figure>
+      </article>
+
+      <p class="also" data-reveal>Also: a <a href="https://github.com/Barabosik/python-video-compressor">Python video compressor</a> that shrinks any clip to a target file size with FFmpeg, and a <a href="https://github.com/Barabosik/Telegram-AI-Bot">Telegram bot</a> that talks to a language model.</p>
+    </section>
+
+    <section class="hire" aria-labelledby="hire-title">
+      <h2 id="hire-title" class="hire-title">Hire me to</h2>
+      <ul class="hire-list" data-lines>
+        <li><span>Break access control first</span></li>
+        <li><span>Write tasks with hidden tests</span></li>
+        <li><span>Review AI-generated code</span></li>
+        <li><span>Build Java and Python services</span></li>
+        <li><span>Ship engines to the browser</span></li>
+      </ul>
+    </section>
+
+    <section id="experience" class="experience" aria-labelledby="exp-title">
+      <h2 id="exp-title" class="visually-hidden">Experience and education</h2>
+      <table class="lineup">
+        <caption class="visually-hidden">Roles, organisations, focus and years</caption>
+        <colgroup><col class="c-role"><col class="c-org"><col class="c-focus"><col class="c-year"></colgroup>
+        <tbody>
+          <tr class="group"><th colspan="4" scope="colgroup">Now</th></tr>
+          <tr><td>AI code evaluator and task author</td><td>Self-employed</td><td>Hidden-test tasks, 10+ languages</td><td>2026–</td></tr>
+          <tr><td>Security researcher</td><td>HackerOne, Bugcrowd</td><td>Access control, auth, GraphQL</td><td>2026–</td></tr>
+          <tr class="group"><th colspan="4" scope="colgroup">Before</th></tr>
+          <tr><td>Senior software engineer</td><td>Google</td><td>Diagnostic services, incidents</td><td>2025–2026</td></tr>
+          <tr><td>Software engineer</td><td>Oracle</td><td>Database tooling, test automation</td><td>2023–2024</td></tr>
+          <tr><td>Software engineer</td><td>GlobalLogic</td><td>Spring Boot services, PostgreSQL</td><td>2021–2023</td></tr>
+          <tr class="group"><th colspan="4" scope="colgroup">Study</th></tr>
+          <tr><td>B.Sc. Business Informatics</td><td>Saarland University</td><td>Saarbrücken</td><td>2026–</td></tr>
+          <tr><td>B.Sc. Telecommunications</td><td>Igor Sikorsky KPI</td><td>Kyiv</td><td>2023–2025</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="contact" class="contact" aria-labelledby="contact-title">
+      <h2 id="contact-title" class="contact-lead">Security, evaluation or backend work? Write to me.</h2>
+      <a class="email" href="mailto:thezloynikitan@gmail.com?subject=Hello%20Nikita"><span class="email-text">thezloynikitan<span class="at">@gmail.com</span></span></a>
+      <div class="contact-foot">
+        <p>Saarbrücken, Germany. Open to remote.</p>
+        <p class="socials"><a href="https://github.com/Barabosik">GitHub</a> <a href="https://www.linkedin.com/in/nikita-andreiev">LinkedIn</a></p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="foot-row">
+      <ul class="foot-places">
+        <li><a href="mailto:thezloynikitan@gmail.com">thezloynikitan@gmail.com</a></li>
+        <li><a href="https://github.com/Barabosik">github.com/Barabosik</a></li>
+        <li><a href="https://www.linkedin.com/in/nikita-andreiev">LinkedIn</a></li>
+      </ul>
+      <ul class="foot-links">
+        <li><a href="https://barabosik.github.io/chess-analyzer/">Chess Analyzer</a></li>
+        <li><a href="https://barabosik.github.io/tether-demo/">TETHER</a></li>
+        <li><a href="#top">Back to top</a></li>
+      </ul>
+    </div>
+    <p class="legal">© 2026 Nikita Andreiev. The game on this page is Morphy vs. Brunswick and Isouard, Paris 1858.</p>
+    <p class="foot-name" aria-hidden="true">Nikita Andreiev</p>
+  </footer>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
