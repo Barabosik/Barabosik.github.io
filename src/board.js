@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { MeshSurfaceSampler } from 'three/addons/math/MeshSurfaceSampler.js';
-import { buildTracks, squareXZ, PLIES } from './opera.js';
+import { buildTracks, squareXZ, PLIES, ANNOTATIONS, ANNOTATION_STYLE } from './opera.js';
 
 const COLORS = {
   bg: 0x161c1a,
@@ -18,6 +18,7 @@ const clamp01 = (v) => Math.min(1, Math.max(0, v));
 const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 const easeOut = (t) => 1 - Math.pow(1 - t, 4);
 const lerp = (a, b, t) => a + (b - a) * t;
+const elasticOut = (t) => (t <= 0 ? 0 : t >= 1 ? 1 : Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * ((2 * Math.PI) / 3)) + 1);
 
 // ---------- piece geometry: lathe silhouettes, one extruded knight head ----------
 const V = (x, y) => new THREE.Vector2(x, y);
@@ -201,6 +202,46 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
 
   // last-move squares
   const markMat = new THREE.MeshBasicMaterial({ color: COLORS.accent, transparent: true, opacity: 0, depthWrite: false });
+  // annotated moves: a round badge (! or !!) that pops up over the piece as it lands, always facing the camera
+  const accentColor = new THREE.Color(COLORS.accent);
+  const badges = Object.entries(ANNOTATIONS).map(([idx, kind]) => {
+    const st = ANNOTATION_STYLE[kind];
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const draw = () => {
+      const g = c.getContext('2d');
+      g.clearRect(0, 0, 256, 256);
+      g.shadowColor = 'rgba(0,0,0,0.35)';
+      g.shadowBlur = 18;
+      g.shadowOffsetY = 6;
+      g.fillStyle = st.color;
+      g.beginPath();
+      g.arc(128, 122, 100, 0, Math.PI * 2);
+      g.fill();
+      g.shadowColor = 'transparent';
+      g.strokeStyle = 'rgba(255,255,255,0.9)';
+      g.lineWidth = 7;
+      g.stroke();
+      g.fillStyle = '#fff';
+      g.font = `800 ${st.text.length > 1 ? 118 : 132}px "Public Sans", system-ui, sans-serif`;
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      g.fillText(st.text, 128, 128);
+      tex.needsUpdate = true;
+    };
+    draw();
+    document.fonts?.load('800 120px "Public Sans"').then(draw);
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, toneMapped: false }));
+    sprite.renderOrder = 10;
+    sprite.visible = false;
+    const [x, z] = squareXZ(PLIES[idx].moves[0][1]);
+    sprite.position.set(x + 0.3, 1.5, z - 0.1);
+    board.add(sprite);
+    return { idx: Number(idx), sprite, y: 1.5, color: new THREE.Color(st.color), landed: false };
+  });
+
   const marks = [0, 1].map(() => {
     const mk = new THREE.Mesh(new THREE.PlaneGeometry(0.985, 0.985), markMat);
     mk.rotation.x = -Math.PI / 2;
@@ -564,6 +605,30 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
     marks[0].position.set(fx, 0.012, fz);
     marks[1].position.set(tx, 0.012, tz);
     markMat.opacity = ply > 0.02 ? 0.32 : 0;
+    markMat.color.copy(accentColor);
+    for (const b of badges) {
+      const k = ply - b.idx;
+      const inn = clamp01((k - 0.72) / 0.3);            // pops as the piece lands
+      const out = clamp01((k - 1.55) / 0.3);            // fades while the next move is played
+      const on = inn * (1 - out);
+      b.sprite.visible = on > 0.001;
+      if (b.sprite.visible) {
+        const pop = elasticOut(inn);
+        const sc = 0.62 * pop * (1 - out * 0.35);
+        b.sprite.scale.set(sc, sc, 1);
+        b.sprite.material.opacity = Math.min(1, inn * 4) * (1 - out);
+        b.sprite.material.rotation = (1 - easeOut(inn)) * 0.5;
+        b.sprite.position.y = b.y - (1 - Math.min(1, pop)) * 0.25 + Math.sin(time * 2.2) * 0.035;
+        // the move's squares take the classification colour
+        if (idx === b.idx) { markMat.color.lerpColors(accentColor, b.color, on); markMat.opacity = 0.32 + 0.3 * on; }
+      }
+      // landing (scrolling forward): a ring runs out through the squares
+      if (k >= 0.72 && !b.landed) {
+        b.landed = true;
+        const [x, z] = squareXZ(PLIES[b.idx].moves[0][1]);
+        if (k < 1.2) waves.push({ x, z, t: time, k: b.color.equals(badges[badges.length - 1].color) ? 1.6 : 1.1 });
+      } else if (k < 0.5) b.landed = false;
+    }
     const draw = easeInOut(clamp01(ply - (PLIES.length - 1)));
     mateLine.scale.y = Math.max(0.0001, draw * (lz0 - lz1));
     mateLine.visible = draw > 0.001;

@@ -2,7 +2,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SplitText } from 'gsap/SplitText';
 import Lenis from 'lenis';
-import { PLIES, NOTES, moveLabel, buildTracks } from './opera.js';
+import { PLIES, NOTES, moveLabel, buildTracks, ANNOTATIONS, ANNOTATION_STYLE } from './opera.js';
 import { sound } from './sound.js';
 import { createFx } from './fx.js';
 
@@ -56,6 +56,7 @@ const ticks = Array.from({ length: Math.ceil(PLIES.length / 2) }, (_, i) => {
 });
 
 const moveText = $('.move-text');
+const moveBadge = $('.move-badge');
 const note = $('.note');
 let shownIdx = -2;
 let shownNote = 0;
@@ -94,11 +95,23 @@ function updateReadout(ply) {
   if (shownIdx > -2 && idx >= 0 && now - lastSound > 70) {
     lastSound = now;
     if (idx === PLIES.length - 1 && idx > shownIdx) { sound.mate(); setTimeout(() => secret('opera'), 900); }
+    else if (ANNOTATIONS[idx] && idx > shownIdx) { sound.capture(); setTimeout(() => sound[ANNOTATIONS[idx]](), 260); }
     else if (CAPTURES.has(idx)) sound.capture();
     else sound.move();
   }
   shownIdx = idx;
   decode(moveText, idx < 0 ? 'Paris, 1858' : moveLabel(idx));
+  // annotated moves wear their badge in the readout too
+  const kind = ANNOTATIONS[idx];
+  moveText.parentElement.dataset.kind = kind || '';
+  if (moveBadge) {
+    moveBadge.classList.toggle('is-on', !!kind);
+    if (kind) {
+      moveBadge.textContent = ANNOTATION_STYLE[kind].text;
+      moveBadge.dataset.kind = kind;
+      moveBadge.setAttribute('title', ANNOTATION_STYLE[kind].name);
+    }
+  }
   if (!reduced) gsap.fromTo(moveText, { yPercent: 30, opacity: 0.2 }, { yPercent: 0, opacity: 1, duration: 0.3, ease: 'power3.out', overwrite: 'auto' });
   const moveNo = idx < 0 ? -1 : Math.floor(idx / 2);
   ticks.forEach((t, i) => { t.classList.toggle('on', i === moveNo); t.classList.toggle('done', i < moveNo); });
@@ -532,7 +545,7 @@ titleLines.forEach((line) => {
 let lettersLive = !introOn;
 if (!reduced && fineHover && chars.length) {
   // soft and slow to settle: pushed letters overshoot, swing back and wobble before they rest
-  const jelly = { duration: 1.3, ease: 'elastic.out(1, 0.28)' };
+  const jelly = { duration: 1.6, ease: 'elastic.out(1, 0.42)' };
   const movers = chars.map((c) => ({
     el: c,
     x: gsap.quickTo(c, 'x', jelly),
@@ -657,7 +670,7 @@ async function playIntro() {
   gsap.set(h1, { x: dx, y: dy, scale: s, transformOrigin: `${cx - hr.left}px ${cy - hr.top}px` });
   gsap.set(chars, { transformOrigin: '50% 85%' });
   html.classList.add('intro-go');
-  const lean = dx > 0 ? -12 : 12;
+  const lean = dx > 0 ? -9 : 9;
   // hold on black while the name rises and the board gets ready (never longer than 3.5 s)
   const t0 = performance.now();
   await Promise.race([boardWarm, new Promise((r) => setTimeout(r, 3500))]);
@@ -668,8 +681,8 @@ async function playIntro() {
     .to(chars, { skewX: lean, scaleX: 1.06, duration: 0.45, ease: 'power2.in', stagger: { each: 0.018, from: 'end' } }, 0.05)
     .add(() => html.classList.add('title-free'), 0.1)      // the rise is over: let the leaning letters out of their masks
     .add(() => { html.classList.add('intro-done'); introDone(); }, 0.5)
-    .fromTo(chars, { skewX: lean, scaleX: 1.14, scaleY: 0.8 }, {
-      skewX: 0, scaleX: 1, scaleY: 1, duration: 1.5, ease: 'elastic.out(1.1, 0.26)', stagger: 0.035, immediateRender: false,
+    .fromTo(chars, { skewX: lean, scaleX: 1.07, scaleY: 0.9 }, {
+      skewX: 0, scaleX: 1, scaleY: 1, duration: 2.1, ease: 'elastic.out(1, 0.5)', stagger: 0.05, immediateRender: false,
     }, 0.9)
     .add(() => {
       lenis?.start();

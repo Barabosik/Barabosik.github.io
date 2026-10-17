@@ -335,6 +335,15 @@ export const sound = {
     tap(t, 1.1, 0.7);
   }, 40, 'hop'),
   land: () => play((t) => knock(t, 1.08 * drift(0.1), 0.85), 30, 'land'),
+  // annotated moves: a shimmering rising bell for brilliant, a clean two-note for great
+  brilliant: () => play((t) => {
+    [659.25, 830.61, 987.77, 1318.51, 1661.22].forEach((f, i) => {
+      tone(t + i * 0.055, f, 0.05, 1.1, 'triangle');
+      tone(t + i * 0.055 + 0.01, f * 2, 0.012, 0.6);
+    });
+    tone(t, 164.81, 0.06, 1.2);
+  }, 0, 'mark'),
+  great: () => play((t) => { tone(t, 880, 0.05, 0.5, 'triangle'); tone(t + 0.09, 1318.51, 0.045, 0.7, 'triangle'); }, 0, 'mark'),
   // the rook coming down: a deep double knock
   slam: () => play((t) => { knock(t, 0.62, 1.3); knock(t + 0.045, 0.5, 0.9); }, 30, 'land'),
   // the queen rising: three soft rising notes

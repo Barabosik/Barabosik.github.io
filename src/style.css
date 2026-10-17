@@ -478,3 +478,18 @@ html.is-grabbing, html.is-grabbing * { cursor: grabbing !important; user-select:
   *, *::before, *::after { transition-duration: 1ms !important; animation-duration: 1ms !important; }
 }
 .project-title .wd { white-space: nowrap; }
+
+/* annotated moves: the analyzer's badge next to the move */
+.move-badge {
+  display: inline-grid; place-items: center; vertical-align: 1.6em; margin-left: 0.35em;
+  width: 1.45em; height: 1.45em; border-radius: 50%; box-shadow: inset 0 0 0 0.1em rgba(255, 255, 255, 0.9);
+  font-family: var(--text); font-size: 0.32em; font-weight: 800; line-height: 1; letter-spacing: -0.06em; color: #fff;
+  scale: 0; opacity: 0; transition: scale 520ms cubic-bezier(0.34, 1.7, 0.5, 1), opacity 200ms ease;
+}
+.move-badge[data-kind="great"] { background: #5c8bb0; }
+.move-badge[data-kind="brilliant"] { background: #26c2a3; }
+.move-badge.is-on { scale: 1; opacity: 1; transition-delay: 240ms; }
+/* the move itself takes the classification colour (chess.com's: great blue, brilliant teal) */
+.move-text { transition: color 450ms ease, text-shadow 450ms ease; }
+.move[data-kind="great"] .move-text { color: #5c8bb0; text-shadow: 0 0 28px rgba(92, 139, 176, 0.35); }
+.move[data-kind="brilliant"] .move-text { color: #26c2a3; text-shadow: 0 0 32px rgba(38, 194, 163, 0.4); }

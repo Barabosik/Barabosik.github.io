@@ -37,6 +37,13 @@ export const PLIES = [
 ];
 
 // What the readout says while the game is between these plies.
+// the classic annotations of the game, in an analyzer's colours: ! great (blue), !! brilliant (teal)
+export const ANNOTATIONS = { 18: 'great', 24: 'great', 30: 'brilliant' };
+export const ANNOTATION_STYLE = {
+  great: { color: '#5c8bb0', text: '!', name: 'Great move' },
+  brilliant: { color: '#26c2a3', text: '!!', name: 'Brilliant move' },
+};
+
 export const NOTES = [
   { from: 0, text: 'Paul Morphy plays the Duke of Brunswick and Count Isouard, together, in a box at the opera.' },
   { from: 6, text: 'White develops a piece with every move. Black spends moves holding on to a pawn.' },
