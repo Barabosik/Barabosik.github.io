@@ -180,6 +180,7 @@ main, .foot { position: relative; z-index: 1; }
 .is-intro .lines [data-line], .is-intro [data-rise] { animation-play-state: paused; }
 .is-intro.intro-go .hero-title { visibility: visible; }
 .is-intro.intro-go .lines [data-line] { animation-play-state: running; }
+.is-intro .lines [data-line] { will-change: transform; }
 .is-intro .top { opacity: 0; }
 .is-intro.intro-done .intro-veil { opacity: 0; transition: opacity 1100ms ease; }
 .is-intro.intro-done .top { opacity: 1; transition: opacity 900ms ease 200ms; }
@@ -224,27 +225,29 @@ main, .foot { position: relative; z-index: 1; }
   font-family: var(--mono); font-size: 0.6875rem; color: var(--accent); opacity: 0; transition: opacity 300ms ease;
 }
 .game-ruler li.on::after { opacity: 1; }
-.cursor {
-  position: fixed; left: 0; top: 0; z-index: 25; pointer-events: none;
-  width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%;
-  border: 1px solid color-mix(in oklab, var(--ink) 55%, transparent); opacity: 0;
-  display: grid; place-items: center;
-  transition: opacity 200ms ease, width 360ms var(--ease-out), height 360ms var(--ease-out), margin 360ms var(--ease-out),
-    background-color 260ms ease, border-color 260ms ease;
-}
+.cursor { position: fixed; left: 0; top: 0; z-index: 25; pointer-events: none; opacity: 0; transition: opacity 200ms ease; }
 .cursor.is-live { opacity: 1; }
-.cursor span {
-  font-family: var(--mono); font-size: 0.75rem; font-weight: 500; white-space: nowrap; color: var(--accent);
-  font-variant-numeric: tabular-nums;
+/* the shape: white with difference blending, so it inverts whatever it sits on (bone on dark, ink on jade) */
+.cursor i {
+  position: absolute; left: 0; top: 0; display: block; width: 10px; height: 10px; border-radius: 5px;
+  background: #fff; mix-blend-mode: difference; will-change: transform, width, height;
+  transition: background-color 220ms ease, box-shadow 220ms ease;
 }
-/* over the board: a jade ring with the square name beside it */
-.cursor[data-mode="square"] { width: 34px; height: 34px; margin: -17px 0 0 -17px; border-color: var(--accent); }
-.cursor[data-mode="square"] span { position: absolute; left: 42px; top: 50%; translate: 0 -50%; }
-/* over links and buttons: the ring opens up and goes quiet */
-.cursor[data-mode="link"] { width: 48px; height: 48px; margin: -24px 0 0 -24px; border-color: var(--accent); background: color-mix(in oklab, var(--accent) 14%, transparent); }
-/* over project images: a filled jade disc that says what the click does */
-.cursor[data-mode="label"] { width: 76px; height: 76px; margin: -38px 0 0 -38px; border-color: transparent; background: var(--accent); }
+.cursor span {
+  position: absolute; left: 0; top: 0; translate: -50% -50%; white-space: nowrap; pointer-events: none;
+  font-family: var(--mono); font-size: 0.75rem; font-weight: 500; color: var(--accent); font-variant-numeric: tabular-nums;
+}
+/* on a control: a quiet highlight wrapped around it, no inversion */
+.cursor[data-mode="link"] i { background: color-mix(in oklab, var(--ink) 13%, transparent); mix-blend-mode: normal; }
+.cursor[data-mode="link"].on-light i { background: color-mix(in oklab, var(--bg) 14%, transparent); }
+/* on project images: a jade disc that names the click */
+.cursor[data-mode="label"] i { background: var(--accent); mix-blend-mode: normal; }
 .cursor[data-mode="label"] span { color: var(--accent-ink); font-family: var(--text); font-weight: 600; font-size: 0.8125rem; }
+/* on the board: a jade ring with the square beside it */
+.cursor[data-mode="square"] i, .cursor[data-mode="grab"] i { background: transparent; box-shadow: inset 0 0 0 1.5px #fff; }
+.cursor[data-mode="square"] span { translate: 26px -50%; color: #fff; mix-blend-mode: difference; font-weight: 600; }
+.cursor[data-mode="text"] i { background: var(--accent); mix-blend-mode: normal; }
+.has-cursor, .has-cursor * { cursor: none !important; }
 @media (hover: none), (pointer: coarse) { .cursor, .sound-pill { display: none; } }
 [data-cursor] { cursor: pointer; }
 

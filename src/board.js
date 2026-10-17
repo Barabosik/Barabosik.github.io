@@ -682,6 +682,15 @@ export function createBoard(canvas, { reducedMotion = false, onLand = null, onTu
       state.pointerOn = true;
     },
     pointerOff() { state.pointerOn = false; state.hover = null; },
+    // draw one hidden frame with everything switched on, so every shader (pieces, burns, embers, shadows)
+    // compiles now, behind the black screen, instead of stalling the first frames people actually see
+    warm() {
+      const off = [];
+      scene.traverse((o) => { if (!o.visible) { off.push(o); o.visible = true; } });
+      frame();
+      renderer.render(scene, camera);
+      off.forEach((o) => { o.visible = false; });
+    },
     // a click on the board: the piece under it hops, and a ring runs out through the squares
     poke(nx, ny) {
       ndc.set(nx, ny);

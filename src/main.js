@@ -23,6 +23,9 @@ const introOn = document.documentElement.classList.contains('is-intro');
 let introDone = () => {};
 const introReady = new Promise((r) => { introDone = r; });
 if (!introOn) introDone();
+// the name only jumps once the board is built and its shaders are compiled, so the jump never stutters
+let boardWarmed = () => {};
+const boardWarm = new Promise((r) => { boardWarmed = r; });
 
 // ---------- smooth scroll on GSAP's clock, so scroll, tweens and WebGL share a frame ----------
 let lenis = null;
@@ -139,6 +142,8 @@ async function startBoard() {
   } catch (err) {
     console.warn('WebGL board unavailable', err);
   }
+  if (board) board.warm();
+  boardWarmed();
   if (!board) {
     document.documentElement.classList.add('no-webgl');
     moveText.textContent = '17. Rd8#';
@@ -395,28 +400,79 @@ $$('[data-copy]').forEach((btn) => btn.addEventListener('click', async () => {
   setTimeout(() => { btn.textContent = 'Copy email'; }, 1800);
 }));
 
-// ---------- the cursor: one ring that follows everywhere and says what a click will do ----------
+// ---------- the cursor ----------
+// A small dot that stretches with speed and wobbles like jelly when it stops. Over a control it lifts off the
+// pointer and wraps the control in a soft highlight (the iPad pointer); over reading text it becomes a caret;
+// over project images it says what a click does; over the board it names the square.
 const cursor = $('.cursor');
+const cursorShape = $('.cursor i');
 const cursorLabel = $('.cursor span');
 if (cursor && fineHover && !reduced) {
-  const cx = gsap.quickTo(cursor, 'x', { duration: 0.32, ease: 'power3.out' });
-  const cy = gsap.quickTo(cursor, 'y', { duration: 0.32, ease: 'power3.out' });
-  let mode = '', label = '';
+  document.documentElement.classList.add('has-cursor');
+  const mouse = { x: -100, y: -100 }, pos = { x: -100, y: -100 };
+  const size = { w: 10, h: 10, r: 5 };
+  // jelly: an underdamped spring on the stretch, another on the press
+  const st = { v: 0, x: 0 }, pr = { v: 0, x: 1 };
+  let mode = '', label = '', target = null, live = false, down = false, ang = 0;
   window.addEventListener('pointermove', (e) => {
-    cx(e.clientX); cy(e.clientY);
+    mouse.x = e.clientX; mouse.y = e.clientY;
+    if (!live) { pos.x = mouse.x; pos.y = mouse.y; live = true; }
     cursor.classList.add('is-live');
     const el = document.elementFromPoint(e.clientX, e.clientY);
+    cursor.classList.toggle('on-light', !!el?.closest('.hire, .contact'));
     const tagged = el?.closest('[data-cursor]');
+    target = null;
     if (tagged) { mode = 'label'; label = tagged.dataset.cursor; }
-    else if (el?.closest('a, button')) { mode = 'link'; label = ''; }
-    else if (!overBoard(el)) { mode = ''; label = ''; }
-    else { mode = 'board'; label = ''; }
+    else if (el?.closest('a, button')) { mode = 'link'; target = el.closest('a, button'); }
+    else if (el?.closest('.hero-lead, .note, .about-text, .project p, .also, .contact-foot p, .legal, .secrets, td')) mode = 'text';
+    else if (overBoard(el)) mode = 'board';
+    else mode = '';
   }, { passive: true });
   document.documentElement.addEventListener('pointerleave', () => cursor.classList.remove('is-live'));
-  gsap.ticker.add(() => {
+  window.addEventListener('pointerdown', () => { down = true; });
+  window.addEventListener('pointerup', () => { down = false; });
+
+  gsap.ticker.add((_, dtMs) => {
+    if (!live) return;
+    const dt = Math.min(dtMs, 50) / 1000;
+    const grabbing = document.documentElement.classList.contains('is-grabbing');
     const sq = mode === 'board' ? boardSquare() : null;
-    const text = mode === 'label' ? label : sq || '';
-    cursor.dataset.mode = mode === 'board' ? (sq ? 'square' : '') : mode;
+    const m = grabbing ? 'grab' : mode === 'board' ? (sq ? 'square' : '') : mode;
+    let tx = mouse.x, ty = mouse.y, w = 10, h = 10, r = 5;
+    if (m === 'link' && target) {
+      const bx = target.getBoundingClientRect();
+      const cx = bx.left + bx.width / 2, cy = bx.top + bx.height / 2;
+      tx = cx + (mouse.x - cx) * 0.16;
+      ty = cy + (mouse.y - cy) * 0.16;
+      w = bx.width + 22; h = bx.height + 14; r = Math.min(14, h / 2);
+    } else if (m === 'label') { w = h = 78; r = 39; }
+    else if (m === 'square') { w = h = 34; r = 17; }
+    else if (m === 'grab') { w = h = 30; r = 15; }
+    else if (m === 'text') { w = 3; h = 26; r = 2; }
+    // the dot is glued to the pointer; snapping onto a control is softer
+    const k = 1 - Math.exp(-dt * (m === 'link' ? 18 : 40));
+    const px = pos.x, py = pos.y;
+    pos.x += (tx - pos.x) * k;
+    pos.y += (ty - pos.y) * k;
+    const ks = 1 - Math.exp(-dt * 16);
+    size.w += (w - size.w) * ks; size.h += (h - size.h) * ks; size.r += (r - size.r) * ks;
+    // stretch along the direction of travel, only as a free dot
+    const vx = (pos.x - px) / dt, vy = (pos.y - py) / dt;
+    const speed = Math.hypot(vx, vy);
+    if (speed > 40) ang = Math.atan2(vy, vx);
+    const want = m === '' ? Math.min(speed / 2400, 0.7) : 0;
+    st.v += (380 * (want - st.x) - 9 * st.v) * dt;
+    st.x += st.v * dt;
+    pr.v += (520 * ((down ? 0.78 : 1) - pr.x) - 14 * pr.v) * dt;
+    pr.x += pr.v * dt;
+    const sx = (1 + st.x) * pr.x, sy = (1 - st.x * 0.45) * pr.x;
+    cursor.dataset.mode = m;
+    cursor.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`;
+    cursorShape.style.width = `${size.w}px`;
+    cursorShape.style.height = `${size.h}px`;
+    cursorShape.style.borderRadius = `${size.r}px`;
+    cursorShape.style.transform = `translate(-50%, -50%) rotate(${m === '' ? ang : 0}rad) scale(${sx}, ${sy})`;
+    const text = m === 'label' ? label : m === 'square' ? sq : '';
     if (cursorLabel.textContent !== text) cursorLabel.textContent = text;
   });
 
@@ -615,7 +671,12 @@ async function playIntro() {
   gsap.set(chars, { transformOrigin: '50% 85%' });
   html.classList.add('intro-go');
   const lean = dx > 0 ? -12 : 12;
-  gsap.timeline({ delay: 1.15 })
+  // hold on black while the name rises and the board gets ready (never longer than 3.5 s)
+  const t0 = performance.now();
+  await Promise.race([boardWarm, new Promise((r) => setTimeout(r, 3500))]);
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const wait = Math.max(0.05, 1.15 - (performance.now() - t0) / 1000);
+  gsap.timeline({ delay: wait })
     .to(h1, { x: 0, y: 0, scale: 1, duration: 1.1, ease: 'expo.inOut' }, 0)
     .to(chars, { skewX: lean, scaleX: 1.06, duration: 0.45, ease: 'power2.in', stagger: { each: 0.018, from: 'end' } }, 0.05)
     .add(() => { html.classList.add('intro-done'); introDone(); }, 0.5)
