@@ -406,7 +406,6 @@ if (cursor && fineHover && !reduced) {
     else if (el?.closest('a, button')) { mode = 'link'; label = ''; }
     else if (!overBoard(el)) { mode = ''; label = ''; }
     else { mode = 'board'; label = ''; }
-    fx?.move(e.clientX, e.clientY, mode === 'board' && boardLive());
   }, { passive: true });
   document.documentElement.addEventListener('pointerleave', () => cursor.classList.remove('is-live'));
   gsap.ticker.add(() => {

@@ -1,14 +1,11 @@
-// Pointer ink, drawn on one canvas above the page: a short glowing trail while the pointer is over
-// the board, and a ring with a few sparks wherever a click lands. The loop sleeps when nothing is alive.
+// Click ink, drawn on one canvas above the page: a ring with a few sparks wherever a click lands. The loop sleeps when nothing is alive.
 const JADE = '159,199,184';
 const BONE = '223,240,232';
 const INK = '22,28,26';
-const TRAIL_LIFE = 0.55;
 
 export function createFx(canvas) {
   const g = canvas.getContext('2d');
   let w = 0, h = 0;
-  const trail = [];
   const rings = [];
   const sparks = [];
   let raf = 0, last = 0;
@@ -35,25 +32,6 @@ export function createFx(canvas) {
     last = now;
     const t = now / 1000;
     g.clearRect(0, 0, w, h);
-
-    // trail: a wide faint stroke under a thin bright one, both tapering with age
-    while (trail.length && t - trail[0].t > TRAIL_LIFE) trail.shift();
-    if (trail.length > 1) {
-      g.globalCompositeOperation = 'lighter';
-      g.lineCap = 'round';
-      for (let pass = 0; pass < 2; pass++) {
-        for (let i = 1; i < trail.length; i++) {
-          const a = trail[i - 1], b = trail[i];
-          const k = 1 - (t - b.t) / TRAIL_LIFE;
-          g.strokeStyle = pass ? `rgba(${BONE},${0.75 * k * k})` : `rgba(${JADE},${0.2 * k})`;
-          g.lineWidth = pass ? 1 + 2.4 * k : 5 + 14 * k;
-          g.beginPath();
-          g.moveTo(a.x, a.y);
-          g.lineTo(b.x, b.y);
-          g.stroke();
-        }
-      }
-    }
 
     // rings: open fast, thin out as they go
     for (let i = rings.length - 1; i >= 0; i--) {
@@ -90,17 +68,10 @@ export function createFx(canvas) {
     }
     g.globalCompositeOperation = 'source-over';
 
-    raf = trail.length > 1 || rings.length || sparks.length ? requestAnimationFrame(loop) : 0;
+    raf = rings.length || sparks.length ? requestAnimationFrame(loop) : 0;
   }
 
   return {
-    // the pointer moved; ink only when it is over the open board
-    move(x, y, ink) {
-      if (!ink) { if (trail.length) trail.length = 0; return; }
-      trail.push({ x, y, t: performance.now() / 1000 });
-      if (trail.length > 48) trail.shift();
-      wake();
-    },
     burst(x, y, { dark = false, big = false } = {}) {
       const t = performance.now() / 1000;
       rings.push({ x, y, t, dark, size: big ? 64 : 38, life: big ? 0.6 : 0.45 });
