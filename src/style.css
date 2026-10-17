@@ -158,7 +158,7 @@ main, .foot { position: relative; z-index: 1; }
 .hero-title {
   font-family: var(--display); font-weight: 800; text-transform: uppercase;
   font-size: var(--step-display); line-height: 0.86; letter-spacing: -0.005em;
-  align-self: start;
+  align-self: start; justify-self: start; width: fit-content; /* the box hugs the letters, so the board beside it stays clickable */
 }
 .lines .line { display: block; overflow: hidden; padding-bottom: 0.06em; margin-bottom: -0.06em; }
 .lines [data-line] { display: block; }

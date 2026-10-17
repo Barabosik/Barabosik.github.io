@@ -280,7 +280,7 @@ export function createBoard(canvas, { reducedMotion = false, onLand = null, onTu
     mesh.receiveShadow = true;
     if (p.type === 'n') mesh.rotation.y = p.white ? Math.PI / 2 : -Math.PI / 2;
     board.add(mesh);
-    const piece = { ...p, mesh, uT, rank: Number(p.start[1]), lift: 0, liftV: 0, air: -1, baseRotY: mesh.rotation.y };
+    const piece = { ...p, mesh, uT, rank: Number(p.start[1]), lift: 0, liftV: 0, act: null, baseRotY: mesh.rotation.y };
     mesh.userData.piece = piece;
     meshes.push(mesh);
     return piece;
@@ -431,7 +431,61 @@ export function createBoard(canvas, { reducedMotion = false, onLand = null, onTu
     }
     tiles.instanceMatrix.needsUpdate = true;
   }
-  const HOP_H = 0.75, HOP_T = 0.55;
+  // a poke: each kind of piece answers the way it moves in the game. act() writes offsets into `o`
+  const ACT_LEN = { n: 0.75, r: 0.8, b: 1.5, q: 1.7, k: 1.7, p: 0.7 };
+  function act(p, dt, o, x, z) {
+    const a = p.act;
+    a.t += dt;
+    const k = a.t / ACT_LEN[p.type];
+    if (k >= 1) {
+      p.act = null;
+      if (p.type === 'n' || p.type === 'p') p.liftV -= 2.2;
+      onLand?.(p, 'end');
+      return;
+    }
+    switch (p.type) {
+      case 'n': // the horse leaps: rears up on the way up, noses down to land, turning once in the air
+        o.y = 4 * 0.85 * k * (1 - k);
+        o.rz = Math.sin(2 * Math.PI * k) * 0.4;
+        o.ry = easeInOut(k) * Math.PI * 2;
+        break;
+      case 'r': // the tower lifts, hangs a moment, and slams down hard enough to shake the board
+        if (k < 0.35) o.y = 0.4 * easeOut(k / 0.35);
+        else if (k < 0.48) { const u = (k - 0.35) / 0.13; o.y = 0.4 * (1 - u * u); }
+        else {
+          if (!a.hit) { a.hit = true; waves.push({ x, z, t: time, k: 2.4 }); onLand?.(p, 'slam'); }
+          const u = (k - 0.48) / 0.52;
+          o.sy = 1 - 0.2 * Math.exp(-u * 5) * Math.cos(u * 20);
+        }
+        break;
+      case 'b': { // the bishop spins like a top on its point, precessing, and settles
+        const amp = 0.3 * Math.sin((Math.PI / 2) * Math.min(1, k * 5)) * (1 - k) ** 1.6;
+        const phi = a.t * 13;
+        o.rx = amp * Math.cos(phi);
+        o.rz = amp * Math.sin(phi);
+        o.y = 0.1 * Math.sin(Math.PI * k);
+        break;
+      }
+      case 'q': { // the queen rises, turns once as if she owns the board, and comes down softly
+        const up = easeInOut(Math.min(1, k / 0.3)) * (1 - easeInOut(Math.max(0, (k - 0.7) / 0.3)));
+        o.y = up * (0.85 + 0.05 * Math.sin(a.t * 6));
+        o.ry = easeInOut(k) * Math.PI * 2;
+        o.s = 1 + 0.06 * up;
+        if (k > 0.96 && !a.hit) { a.hit = true; waves.push({ x, z, t: time, k: 1.2 }); onLand?.(p, 'land'); }
+        break;
+      }
+      case 'k': { // the king is knocked off balance and wobbles back upright, like a weeble
+        const tip = 0.5 * Math.exp(-k * 4.2) * Math.sin(a.t * 9);
+        o.rx = tip * Math.cos(a.dir);
+        o.rz = tip * Math.sin(a.dir);
+        break;
+      }
+      default: // the pawn marches: two small steps toward the other side and back
+        o.dz = (p.white ? -1 : 1) * 0.45 * Math.sin(Math.PI * k);
+        o.y = 0.32 * Math.abs(Math.sin(2 * Math.PI * k));
+        if (k > 0.5 && !a.hit) { a.hit = true; onLand?.(p, 'step'); }
+    }
+  }
 
   const ray = new THREE.Raycaster();
   const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -483,19 +537,13 @@ export function createBoard(canvas, { reducedMotion = false, onLand = null, onTu
       p.liftV += (wl * wl * (lift - p.lift) - 2 * zl * wl * p.liftV) * Math.min(dt, 1 / 30);
       p.lift += p.liftV * Math.min(dt, 1 / 30);
       y += p.lift;
-      // poked: the piece jumps and turns once in the air, then lands with a little bounce
-      let twirl = 0;
-      if (p.air >= 0) {
-        p.air += dt;
-        const k = p.air / HOP_T;
-        if (k >= 1) { p.air = -1; p.liftV -= 2.4; onLand?.(p); }
-        else { y += 4 * HOP_H * k * (1 - k); twirl = easeInOut(k) * Math.PI * 2; }
-      }
+      const o = { y: 0, dz: 0, rx: 0, rz: 0, ry: 0, sy: 1, s: 1 };
+      if (p.act) act(p, dt, o, x, z);
+      y += o.y;
       if (waves.length && y > -1) y += waveAt(x, z);
-      p.mesh.rotation.y = p.baseRotY + twirl;
-      p.mesh.position.set(x + Math.sin(tilt) * 0.35, y, z);
-      p.mesh.rotation.z = tilt;
-      p.mesh.scale.setScalar(s);
+      p.mesh.rotation.set(o.rx, p.baseRotY + o.ry, tilt + o.rz);
+      p.mesh.position.set(x + Math.sin(tilt) * 0.35, y, z + o.dz);
+      p.mesh.scale.set(s * o.s, s * o.s * o.sy, s * o.s);
       p.mesh.visible = y > -1.4;
     }
     // highlight the squares of the latest move
@@ -707,7 +755,7 @@ export function createBoard(canvas, { reducedMotion = false, onLand = null, onTu
       if (!reducedMotion) {
         waves.push({ x, z, t: time, k: piece ? 1 : 0.7 });
         if (waves.length > 6) waves.shift();
-        if (piece) piece.air = 0;
+        if (piece) piece.act = { t: 0, hit: false, dir: Math.random() * Math.PI * 2 };
       }
       return { piece: piece ? { type: piece.type, white: piece.white } : null };
     },

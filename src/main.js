@@ -136,7 +136,11 @@ async function startBoard() {
     const { createBoard, webglAvailable } = await import('./board.js');
     if (webglAvailable()) board = createBoard(canvas, {
       reducedMotion: reduced,
-      onLand: () => sound.land(),
+      onLand: (p, phase) => {
+        if (phase === 'slam') { sound.slam(); buzz([20, 30, 20]); }
+        else if (phase === 'step') sound.tap(1.3, 0.7);
+        else if (phase === 'land' || (phase === 'end' && (p.type === 'n' || p.type === 'p'))) sound.land();
+      },
       onTurn: () => secret('spin'),
     });
   } catch (err) {
@@ -152,14 +156,10 @@ async function startBoard() {
     ScrollTrigger.refresh();
     return;
   }
-  let active = true, boardAcc = 99;
+  let active = true;
   gsap.ticker.add((_, dt) => {
     // the readout follows the eased ply the board actually draws, so text and pieces agree
-    if (!active || document.hidden) return;
-    boardAcc += dt;
-    if (boardAcc < 6.5) return;
-    updateReadout(board.render(Math.min(boardAcc, 50) / 1000));
-    boardAcc = 0;
+    if (active && !document.hidden) updateReadout(board.render(Math.min(dt, 50) / 1000));
   });
   if (!reduced) introReady.then(() => gsap.to(board, { intro: 1, duration: 2.1, ease: 'none', delay: 0.15 }));
 
@@ -214,7 +214,7 @@ async function startBoard() {
     } else if (e.type === 'pointerup' && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 8) {
       const hit = board.poke(...ndc(e));
       if (hit?.piece) {
-        sound.hop();
+        ({ n: sound.hop, b: sound.spin, q: sound.rise, k: sound.wobble, p: () => sound.tap(1.2, 0.7), r: () => {} })[hit.piece.type]?.();
         buzz(12);
         if (hit.piece.type === 'k' && !hit.piece.white) secret('king');
       }
@@ -422,14 +422,12 @@ if (cursor && fineHover && !reduced) {
   const size = { w: BASE, h: BASE, r: BASE / 2 };
   const drop = { s: 1, sv: 0, e: 0, ev: 0 };
   let ox = 1, oy = 0;                                // orientation as a doubled-angle vector: never flips
-  let mode = '', label = '', target = null, live = false, moved = false, down = false;
-  let lastW = '', lastH = '', lastR = '', lastBlur = -1;
+  let mode = '', label = '', target = null, live = false, moved = false, down = false, homing = false;
+  let lastW = '', lastH = '', lastR = '';
   window.addEventListener('pointermove', (e) => {
     const raw = e.getCoalescedEvents?.() || [];
     (raw.length ? raw : [e]).forEach((c) => path.push([c.timeStamp || performance.now(), c.clientX, c.clientY]));
-    const ahead = e.getPredictedEvents?.() || [];
-    const lead = ahead.length ? ahead[ahead.length - 1] : e;
-    mouse.x = lead.clientX; mouse.y = lead.clientY;
+    mouse.x = e.clientX; mouse.y = e.clientY;
     moved = true;
     if (!live) { pos.x = mouse.x; pos.y = mouse.y; live = true; cursor.classList.add('is-live'); }
   }, { passive: true });
@@ -461,17 +459,17 @@ if (cursor && fineHover && !reduced) {
 
     // velocity over the last ~32 ms of the real path; nothing new for 40 ms means the hand has stopped
     const now = performance.now();
-    while (path.length > 2 && now - path[0][0] > 32) path.shift();
+    while (path.length > 2 && now - path[0][0] > 18) path.shift();
     let vx = 0, vy = 0;
     const a = path[0], b = path[path.length - 1];
-    if (b && now - b[0] < 40 && b[0] - a[0] > 3) { vx = ((b[1] - a[1]) * 1000) / (b[0] - a[0]); vy = ((b[2] - a[2]) * 1000) / (b[0] - a[0]); }
-    const kv = 1 - Math.exp(-dt * 45);
+    if (b && now - b[0] < 40 && b[0] - a[0] > 2) { vx = ((b[1] - a[1]) * 1000) / (b[0] - a[0]); vy = ((b[2] - a[2]) * 1000) / (b[0] - a[0]); }
+    const kv = 1 - Math.exp(-dt * 60);
     vel.x += (vx - vel.x) * kv;
     vel.y += (vy - vel.y) * kv;
     const speed = Math.hypot(vel.x, vel.y);
     if (speed > 30) {
       const c2 = (vel.x * vel.x - vel.y * vel.y) / (speed * speed), s2 = (2 * vel.x * vel.y) / (speed * speed);
-      const ko = 1 - Math.exp(-dt * 28);
+      const ko = 1 - Math.exp(-dt * 80);
       ox += (c2 - ox) * ko; oy += (s2 - oy) * ko;
     }
     const ang = Math.atan2(oy, ox) / 2;
@@ -487,9 +485,12 @@ if (cursor && fineHover && !reduced) {
     } else if (m === 'label') { w = h = 80; r = 40; }
     else if (m === 'square' || m === 'grab') { w = h = 36; r = 18; }
     else if (m === 'text') { w = 3; h = 28; r = 2; }
-    // leaving a control the drop slides home quickly, then glues on
-    const dist = Math.hypot(tx - pos.x, ty - pos.y);
-    if (!follow && dist > 1.5) follow = 60;
+    // leaving a control the drop slides home quickly, then glues on (only then: a fast hand never drags it)
+    if (follow) homing = true;
+    else if (homing) {
+      if (Math.hypot(tx - pos.x, ty - pos.y) < 2) homing = false;
+      else follow = 45;
+    }
     if (follow) { const k = 1 - Math.exp(-dt * follow); pos.x += (tx - pos.x) * k; pos.y += (ty - pos.y) * k; }
     else { pos.x = tx; pos.y = ty; }
     const ks = 1 - Math.exp(-dt * 18);
@@ -498,17 +499,15 @@ if (cursor && fineHover && !reduced) {
     // the drop: smears along its path and slims a little with speed; one soft overshoot when it stops
     const free = m === '';
     const f = free ? Math.min(speed / 1800, 1) : 0;
-    spring(drop, 'e', 'ev', f * 0.85, 520, 0.42, dt);
-    spring(drop, 's', 'sv', (down ? 0.8 : 1) - f * 0.16, 520, 0.5, dt);
+    spring(drop, 'e', 'ev', f * 0.32, 600, 0.5, dt);
+    spring(drop, 's', 'sv', (down ? 0.8 : 1) - f * 0.32, 420, 0.38, dt);
     const sx = drop.s * (1 + drop.e), sy = drop.s * (1 - drop.e * 0.32);
-    const blur = free ? Math.round(Math.min(speed / 1400, 1) * 22) / 10 : 0;
 
     cursor.style.transform = `translate3d(${pos.x.toFixed(2)}px, ${pos.y.toFixed(2)}px, 0)`;
     const W = `${size.w.toFixed(1)}px`, H = `${size.h.toFixed(1)}px`, R = `${size.r.toFixed(1)}px`;
     if (W !== lastW) { cursorShape.style.width = W; lastW = W; }
     if (H !== lastH) { cursorShape.style.height = H; lastH = H; }
     if (R !== lastR) { cursorShape.style.borderRadius = R; lastR = R; }
-    if (blur !== lastBlur) { cursorShape.style.filter = blur ? `blur(${blur}px)` : ''; lastBlur = blur; }
     cursorShape.style.transform = `translate(-50%, -50%) rotate(${free ? ang.toFixed(4) : 0}rad) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
     if (cursor.dataset.mode !== m) cursor.dataset.mode = m;
     const text = m === 'label' ? label : m === 'square' ? sq : '';

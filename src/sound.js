@@ -335,6 +335,13 @@ export const sound = {
     tap(t, 1.1, 0.7);
   }, 40, 'hop'),
   land: () => play((t) => knock(t, 1.08 * drift(0.1), 0.85), 30, 'land'),
+  // the rook coming down: a deep double knock
+  slam: () => play((t) => { knock(t, 0.62, 1.3); knock(t + 0.045, 0.5, 0.9); }, 30, 'land'),
+  // the queen rising: three soft rising notes
+  rise: () => play((t) => [659.25, 880, 1174.66].forEach((f, i) => tone(t + i * 0.09, f, 0.035, 0.6, 'triangle')), 0, 'rise'),
+  // the bishop spinning, the king wobbling
+  spin: () => play((t) => { const n = noise(); const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 3; f.frequency.setValueAtTime(900, t); f.frequency.exponentialRampToValueAtTime(2600, t + 0.6); const g = ctx.createGain(); env(g, t, 0.05, 0.08, 0.8); n.connect(f).connect(g).connect(master); n.start(t); n.stop(t + 0.5); }, 100, 'spin'),
+  wobble: () => play((t) => [0, 0.2, 0.36].forEach((d, i) => knock(t + d, 0.8 + i * 0.08, 0.5 - i * 0.12)), 0, 'land'),
   // a letter settling into place: each one a semitone above the last
   letter: (i) => play((t) => tone(t, 880 * Math.pow(2, i / 12), 0.03, 0.05, 'triangle'), 0, 'letter'),
   // a secret found: a bright arpeggio over a low root
