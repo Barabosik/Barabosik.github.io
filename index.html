@@ -24,9 +24,9 @@
     (function () {
       var d = document.documentElement;
       d.classList.add('js');
-      // first visit of the session: the name gets its entrance on a black screen
+      // every visit: the name gets its entrance on a black screen (not for deep links or reduced motion)
       try {
-        if (!sessionStorage.getItem('na-intro') && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        if (!location.hash && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
           d.classList.add('is-intro');
           history.scrollRestoration = 'manual';
         }

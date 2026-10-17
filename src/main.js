@@ -18,7 +18,7 @@ const buzz = (p) => { if (coarse && navigator.vibrate) navigator.vibrate(p); };
 // is this spot the open board, rather than text or a control laid over it?
 const overBoard = (el) => !!el && !el.closest('a, button, [data-cursor], .readout, .hero-foot, .hero-title, .top, .foot, main section:not(.hero):not(.game)');
 const fx = !reduced ? createFx($('.fx')) : null;
-// the entrance (first visit of a session only); the board waits for it before its pieces rise
+// the entrance (every visit); the board waits for it before its pieces rise
 const introOn = document.documentElement.classList.contains('is-intro');
 let introDone = () => {};
 const introReady = new Promise((r) => { introDone = r; });
@@ -644,7 +644,6 @@ console.log('Six secrets on this page. Here is one, in base64: dHlwZSBlNCBvbiB0a
 // letters lean back against the motion; on landing they squash and wobble like jelly, one after another.
 async function playIntro() {
   const html = document.documentElement;
-  try { sessionStorage.setItem('na-intro', '1'); } catch { /* ignore */ }
   lenis?.stop();
   await Promise.race([document.fonts.load('800 100px "Big Shoulders"'), new Promise((r) => setTimeout(r, 800))]);
   const h1 = $('.hero-title');
