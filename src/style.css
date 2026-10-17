@@ -234,6 +234,28 @@ main, .foot { position: relative; z-index: 1; }
 @media (hover: none), (pointer: coarse) { .cursor, .sound-pill { display: none; } }
 [data-cursor] { cursor: pointer; }
 
+.fx { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 24; pointer-events: none; }
+html.is-grabbing, html.is-grabbing * { cursor: grabbing !important; user-select: none; }
+.hero-title .hc { display: inline-block; will-change: transform; }
+.hero-title [data-line] { cursor: pointer; }
+/* sound just switched itself on: the button says so */
+.sound.just-on .bars { animation: sound-pop 1.2s var(--ease-out); }
+@keyframes sound-pop { 20% { scale: 1.5; } 100% { scale: 1; } }
+
+.toast {
+  position: fixed; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); z-index: 40; pointer-events: none;
+  display: flex; align-items: baseline; gap: 12px; max-width: calc(100vw - 32px);
+  padding: 12px 18px; border-radius: 14px; background: var(--ink); color: var(--bg);
+  font-size: 0.9375rem; line-height: 1.35;
+  opacity: 0; translate: -50% 16px; scale: 0.96;
+  transition: opacity 260ms ease, translate 520ms var(--ease-out), scale 520ms var(--ease-out);
+}
+.toast.is-on { opacity: 1; translate: -50% 0; scale: 1; }
+.toast-tag { flex: none; font-weight: 600; color: #3d6b5b; }
+.toast-tag:empty { display: none; }
+.secrets { margin-top: 96px; font-size: var(--step-small); color: var(--muted); }
+.secrets-count { color: var(--accent); font-variant-numeric: tabular-nums; }
+
 .sound-pill {
   position: fixed; left: 0; top: 0; z-index: 26; pointer-events: none;
   display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px 7px 10px; border-radius: 999px;
@@ -369,7 +391,7 @@ main, .foot { position: relative; z-index: 1; }
 .foot-links { grid-column: 8 / -1; display: grid; gap: 10px; align-content: start; font-size: var(--step-small); }
 .foot-links a { text-decoration: none; padding-block: 6px; }
 .foot-links a:hover { text-decoration: underline; text-underline-offset: 0.25em; }
-.legal { margin-top: 96px; font-size: var(--step-small); color: var(--muted); }
+.legal { margin-top: 12px; font-size: var(--step-small); color: var(--muted); }
 .foot-name {
   font-family: var(--display); font-weight: 800; text-transform: uppercase;
   font-size: 13.4vw; line-height: 0.8; letter-spacing: -0.01em; white-space: nowrap;

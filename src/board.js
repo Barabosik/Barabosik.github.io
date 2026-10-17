@@ -93,7 +93,7 @@ const SHIFT = {
   tall: { hero: [0, 0.3], game: [0, 0.1] },
 };
 
-export function createBoard(canvas, { reducedMotion = false } = {}) {
+export function createBoard(canvas, { reducedMotion = false, onLand = null, onTurn = null } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -237,7 +237,7 @@ export function createBoard(canvas, { reducedMotion = false } = {}) {
     mesh.receiveShadow = true;
     if (p.type === 'n') mesh.rotation.y = p.white ? Math.PI / 2 : -Math.PI / 2;
     board.add(mesh);
-    const piece = { ...p, mesh, rank: Number(p.start[1]), lift: 0, liftV: 0 };
+    const piece = { ...p, mesh, rank: Number(p.start[1]), lift: 0, liftV: 0, air: -1, baseRotY: mesh.rotation.y };
     mesh.userData.piece = piece;
     meshes.push(mesh);
     return piece;
@@ -361,8 +361,35 @@ export function createBoard(canvas, { reducedMotion = false } = {}) {
   // so fast scrubbing and direction changes stay fluid instead of stepping with every wheel tick
   const state = {
     intro: reducedMotion ? 1 : 0, hero: 0, game: 0, ply: 0, heroT: 0, gameT: 0, plyT: 0,
-    px: 0, py: 0, tx: 0, ty: 0, wide: true, hover: null, hoverPiece: null,
+    px: 0, py: 0, tx: 0, ty: 0, wide: true, hover: null, hoverPiece: null, spin: 0, spinV: 0, dragging: false,
   };
+  // a poke sends a ring through the squares: each wave is an origin and a start time
+  const waves = [];
+  let time = 0;
+  function waveAt(x, z) {
+    let y = 0;
+    for (const w of waves) {
+      const a = time - w.t;
+      const d = Math.hypot(x - w.x, z - w.z);
+      y += 0.07 * w.k * Math.exp(-a * 1.7) * Math.exp(-((d - a * 6.5) ** 2) * 0.7);
+    }
+    return y;
+  }
+  let tilesDirty = false;
+  function rippleTiles() {
+    while (waves.length && time - waves[0].t > 2.4) waves.shift();
+    if (!waves.length && !tilesDirty) return;
+    tilesDirty = waves.length > 0;
+    for (let f = 0; f < 8; f++) {
+      for (let r = 0; r < 8; r++) {
+        m.makeTranslation(f - 3.5, -0.02 + waveAt(f - 3.5, 3.5 - r), 3.5 - r);
+        tiles.setMatrixAt(f * 8 + r, m);
+      }
+    }
+    tiles.instanceMatrix.needsUpdate = true;
+  }
+  const HOP_H = 0.75, HOP_T = 0.55;
+
   const ray = new THREE.Raycaster();
   const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   const hit = new THREE.Vector3();
@@ -415,6 +442,16 @@ export function createBoard(canvas, { reducedMotion = false } = {}) {
       p.liftV += (wl * wl * (lift - p.lift) - 2 * zl * wl * p.liftV) * Math.min(dt, 1 / 30);
       p.lift += p.liftV * Math.min(dt, 1 / 30);
       y += p.lift;
+      // poked: the piece jumps and turns once in the air, then lands with a little bounce
+      let twirl = 0;
+      if (p.air >= 0) {
+        p.air += dt;
+        const k = p.air / HOP_T;
+        if (k >= 1) { p.air = -1; p.liftV -= 2.4; onLand?.(p); }
+        else { y += 4 * HOP_H * k * (1 - k); twirl = easeInOut(k) * Math.PI * 2; }
+      }
+      if (waves.length && y > -1) y += waveAt(x, z);
+      p.mesh.rotation.y = p.baseRotY + twirl;
       p.mesh.position.set(x + Math.sin(tilt) * 0.35, y, z);
       p.mesh.rotation.z = tilt;
       p.mesh.scale.setScalar(s);
@@ -514,7 +551,21 @@ export function createBoard(canvas, { reducedMotion = false } = {}) {
     }
   }
 
-  let time = 0;
+  // drag spins the board; a fling keeps turning, then it settles on the nearest whole turn
+  const TAU = Math.PI * 2;
+  let lastDrag = 0, turnBase = 0;
+  function spinBoard(dt) {
+    if (!state.dragging) {
+      if (Math.abs(state.spinV) > 1.4) state.spinV *= Math.exp(-dt * 1.3);
+      else {
+        const target = Math.round(state.spin / TAU) * TAU, w = TAU / 1.1;
+        state.spinV += (w * w * (target - state.spin) - 2 * 0.6 * w * state.spinV) * dt;
+      }
+      state.spin += state.spinV * dt;
+    }
+    if (Math.abs(state.spin - turnBase) > TAU * 0.98) { turnBase = Math.round(state.spin / TAU) * TAU; onTurn?.(); }
+  }
+
   function render(dt = 1 / 60) {
     time += dt;
     if (time > 2) adapt(dt);
@@ -523,7 +574,9 @@ export function createBoard(canvas, { reducedMotion = false } = {}) {
     spring('ply', state.plyT, 0.6, dt);
     state.px = follow(state.px, state.tx, 3.5, dt);
     state.py = follow(state.py, state.ty, 3.5, dt);
-    if (!reducedMotion) board.rotation.y = Math.sin(time * 0.18) * 0.035 * (1 - state.hero);
+    spinBoard(Math.min(dt, 1 / 30));
+    if (!reducedMotion) board.rotation.y = Math.sin(time * 0.18) * 0.035 * (1 - state.hero) + state.spin;
+    rippleTiles();
     state.hoverPiece = null;
     if (state.pointerOn) {
       ndc.set(state.tx, -state.ty);
@@ -588,6 +641,46 @@ export function createBoard(canvas, { reducedMotion = false } = {}) {
       state.pointerOn = true;
     },
     pointerOff() { state.pointerOn = false; state.hover = null; },
+    // a click on the board: the piece under it hops, and a ring runs out through the squares
+    poke(nx, ny) {
+      ndc.set(nx, ny);
+      camera.updateMatrixWorld();
+      ray.setFromCamera(ndc, camera);
+      const piece = ray.intersectObjects(meshes, false).find((h) => h.object.visible)?.object.userData.piece;
+      let x, z;
+      if (piece) { x = piece.mesh.position.x; z = piece.mesh.position.z; }
+      else if (ray.ray.intersectPlane(floor, hit)) {
+        board.worldToLocal(hit);
+        if (Math.abs(hit.x) > 4.4 || Math.abs(hit.z) > 4.4) return null;
+        x = hit.x; z = hit.z;
+      } else return null;
+      if (!reducedMotion) {
+        waves.push({ x, z, t: time, k: piece ? 1 : 0.7 });
+        if (waves.length > 6) waves.shift();
+        if (piece) piece.air = 0;
+      }
+      return { piece: piece ? { type: piece.type, white: piece.white } : null };
+    },
+    dragStart() { state.dragging = true; state.spinV = 0; lastDrag = performance.now(); },
+    drag(dx) {
+      if (reducedMotion) return;
+      const now = performance.now();
+      const d = dx * 0.0085;
+      state.spin += d;
+      state.spinV = lerp(state.spinV, d / (Math.max(4, now - lastDrag) / 1000), 0.5);
+      lastDrag = now;
+    },
+    dragEnd() {
+      state.dragging = false;
+      if (performance.now() - lastDrag > 90) state.spinV = 0;
+      return state.spinV;
+    },
+    // terminal mode: the whole set drawn as wire
+    toggleWire() {
+      const on = !mats.white.wireframe;
+      [mats.white, mats.black, tiles.material, slab.material].forEach((mt) => { mt.wireframe = on; });
+      return on;
+    },
     dispose() { renderer.dispose(); },
   };
 }

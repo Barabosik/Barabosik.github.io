@@ -3,9 +3,14 @@ const KEY = 'na-sound';
 let ctx = null;
 let master = null;
 let enabled = false;
-let lastAt = 0;
+let chosen = false;
+const lastAt = {};
 
-try { enabled = localStorage.getItem(KEY) === 'on'; } catch { /* storage blocked: stay off */ }
+try {
+  const v = localStorage.getItem(KEY);
+  enabled = v === 'on';
+  chosen = v !== null;
+} catch { /* storage blocked: stay off */ }
 
 function audio() {
   if (!ctx) {
@@ -73,11 +78,12 @@ function tone(t, freq, peak, decay, type = 'sine') {
   o.stop(t + decay + 0.05);
 }
 
-function play(fn, gap = 45) {
+// each kind of sound keeps its own anti-spam clock, so a click never swallows a move
+function play(fn, gap = 45, kind = 'ui') {
   if (!enabled) return;
   const now = performance.now();
-  if (now - lastAt < gap) return;
-  lastAt = now;
+  if (now - (lastAt[kind] || 0) < gap) return;
+  lastAt[kind] = now;
   const c = audio();
   if (c) fn(c.currentTime + 0.005);
 }
@@ -208,21 +214,63 @@ if (enabled) {
   window.addEventListener('keydown', start);
 }
 
+// a tap on wood: three filter colours in turn and a little pitch drift, so a hundred clicks never sound the same
+const TAP = [1800, 2350, 1450];
+let tapIdx = 0;
+const drift = (k) => 1 + (Math.random() - 0.5) * k;
+function tap(t, pitch, level) {
+  const n = noise();
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = TAP[tapIdx++ % TAP.length] * pitch * drift(0.12);
+  bp.Q.value = 6;
+  const g = ctx.createGain();
+  env(g, t, 0.32 * level, 0.002, 0.06);
+  n.connect(bp).connect(g).connect(master);
+  n.start(t, Math.random() * 0.3);
+  n.stop(t + 0.09);
+}
+
 export const sound = {
   get on() { return enabled; },
+  // has the visitor ever chosen? if they muted once, the page never turns sound on by itself
+  get chosen() { return chosen; },
   set(on) {
     enabled = on;
+    chosen = true;
     try { localStorage.setItem(KEY, on ? 'on' : 'off'); } catch { /* ignore */ }
     if (on) { audio(); play((t) => { tone(t, 660, 0.08, 0.12); tone(t + 0.07, 990, 0.06, 0.16); }, 0); }
     setMusic(on);
   },
-  move: () => play((t) => knock(t, 1 + (Math.random() - 0.5) * 0.08)),
-  capture: () => play((t) => { knock(t, 1.05, 1); knock(t + 0.075, 0.82, 0.9); }),
+  move: () => play((t) => knock(t, 1 + (Math.random() - 0.5) * 0.08), 45, 'move'),
+  capture: () => play((t) => { knock(t, 1.05, 1); knock(t + 0.075, 0.82, 0.9); }, 45, 'move'),
   mate: () => play((t) => {
     knock(t, 0.75, 1.2);
     [98, 146.8, 196, 293.7].forEach((f, i) => tone(t + 0.04 + i * 0.03, f, 0.09, 2.2, i % 2 ? 'triangle' : 'sine'));
-  }, 0),
-  tick: () => play((t) => tone(t, 2600, 0.025, 0.03), 60),
+  }, 0, 'mate'),
+  tick: () => play((t) => tone(t, 2600, 0.025, 0.03), 60, 'tick'),
+  tap: (pitch = 1, level = 1) => play((t) => tap(t, pitch, level), 55, 'tap'),
+  // a poked piece leaves the board with a rising blip, and lands with a knock
+  hop: () => play((t) => {
+    const o = ctx.createOscillator();
+    const f = 340 * drift(0.15);
+    o.frequency.setValueAtTime(f, t);
+    o.frequency.exponentialRampToValueAtTime(f * 2.1, t + 0.13);
+    const g = ctx.createGain();
+    env(g, t, 0.07, 0.01, 0.14);
+    o.connect(g).connect(master);
+    o.start(t);
+    o.stop(t + 0.2);
+    tap(t, 1.1, 0.7);
+  }, 40, 'hop'),
+  land: () => play((t) => knock(t, 1.08 * drift(0.1), 0.85), 30, 'land'),
+  // a letter settling into place: each one a semitone above the last
+  letter: (i) => play((t) => tone(t, 880 * Math.pow(2, i / 12), 0.03, 0.05, 'triangle'), 0, 'letter'),
+  // a secret found: a bright arpeggio over a low root
+  secret: () => play((t) => {
+    tone(t, 130.81, 0.07, 1.4);
+    [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(t + i * 0.06, f, 0.06, 0.9, 'triangle'));
+  }, 0, 'secret'),
   press: () => play((t) => {
     const o = ctx.createOscillator();
     o.frequency.setValueAtTime(520, t);
@@ -232,7 +280,7 @@ export const sound = {
     o.connect(g).connect(master);
     o.start(t);
     o.stop(t + 0.1);
-  }, 0),
+  }, 40, 'press'),
   whoosh: () => play((t) => {
     const n = noise();
     const f = ctx.createBiquadFilter();
@@ -245,5 +293,5 @@ export const sound = {
     n.connect(f).connect(g).connect(master);
     n.start(t);
     n.stop(t + 0.5);
-  }, 200),
+  }, 200, 'whoosh'),
 };

@@ -4,12 +4,20 @@ import { SplitText } from 'gsap/SplitText';
 import Lenis from 'lenis';
 import { PLIES, NOTES, moveLabel, buildTracks } from './opera.js';
 import { sound } from './sound.js';
+import { createFx } from './fx.js';
 
 gsap.registerPlugin(ScrollTrigger, SplitText);
 
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const fineHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+const coarse = window.matchMedia('(pointer: coarse)').matches;
+// a short buzz under the thumb, on phones that have one (never on scroll)
+const buzz = (p) => { if (coarse && navigator.vibrate) navigator.vibrate(p); };
+// is this spot the open board, rather than text or a control laid over it?
+const overBoard = (el) => !!el && !el.closest('a, button, [data-cursor], .readout, .hero-foot, .hero-title, .top, .foot, main section:not(.hero):not(.game)');
+const fx = !reduced ? createFx($('.fx')) : null;
 
 // ---------- smooth scroll on GSAP's clock, so scroll, tweens and WebGL share a frame ----------
 let lenis = null;
@@ -77,7 +85,7 @@ function updateReadout(ply) {
   const now = performance.now();
   if (shownIdx > -2 && idx >= 0 && now - lastSound > 70) {
     lastSound = now;
-    if (idx === PLIES.length - 1 && idx > shownIdx) sound.mate();
+    if (idx === PLIES.length - 1 && idx > shownIdx) { sound.mate(); setTimeout(() => secret('opera'), 900); }
     else if (CAPTURES.has(idx)) sound.capture();
     else sound.move();
   }
@@ -109,6 +117,8 @@ updateReadout(0);
 
 
 let boardSquare = () => null;
+let boardLive = () => false;
+let boardApi = null;
 
 // ---------- WebGL board (three.js arrives as its own chunk, after the text has painted) ----------
 const canvas = $('.stage');
@@ -116,7 +126,11 @@ async function startBoard() {
   let board = null;
   try {
     const { createBoard, webglAvailable } = await import('./board.js');
-    if (webglAvailable()) board = createBoard(canvas, { reducedMotion: reduced });
+    if (webglAvailable()) board = createBoard(canvas, {
+      reducedMotion: reduced,
+      onLand: () => sound.land(),
+      onTurn: () => secret('spin'),
+    });
   } catch (err) {
     console.warn('WebGL board unavailable', err);
   }
@@ -160,6 +174,42 @@ async function startBoard() {
     board.pointer((e.clientX / window.innerWidth) * 2 - 1, (e.clientY / window.innerHeight) * 2 - 1);
   }, { passive: true });
   boardSquare = () => (active ? board.square : null);
+  boardLive = () => active;
+  boardApi = board;
+
+  // the board under the hand: a click pokes, a mouse drag spins it
+  let down = null;
+  const ndc = (e) => [(e.clientX / window.innerWidth) * 2 - 1, -((e.clientY / window.innerHeight) * 2 - 1)];
+  window.addEventListener('pointerdown', (e) => {
+    if (!active || e.button !== 0 || !overBoard(e.target)) return;
+    down = { x: e.clientX, y: e.clientY, lastX: e.clientX, drag: false, mouse: e.pointerType === 'mouse' };
+  });
+  window.addEventListener('pointermove', (e) => {
+    if (!down?.mouse) return;
+    if (!down.drag && Math.abs(e.clientX - down.x) > 6) {
+      down.drag = true;
+      board.dragStart();
+      document.documentElement.classList.add('is-grabbing');
+    }
+    if (down.drag) { board.drag(e.clientX - down.lastX); down.lastX = e.clientX; }
+  }, { passive: true });
+  const release = (e) => {
+    if (!down) return;
+    if (down.drag) {
+      if (Math.abs(board.dragEnd()) > 3) sound.whoosh();
+    } else if (e.type === 'pointerup' && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 8) {
+      const hit = board.poke(...ndc(e));
+      if (hit?.piece) {
+        sound.hop();
+        buzz(12);
+        if (hit.piece.type === 'k' && !hit.piece.white) secret('king');
+      }
+    }
+    down = null;
+    document.documentElement.classList.remove('is-grabbing');
+  };
+  window.addEventListener('pointerup', release);
+  window.addEventListener('pointercancel', release);
   document.documentElement.addEventListener('pointerleave', () => board.pointerOff());
   window.addEventListener('resize', () => board.resize());
   ScrollTrigger.refresh();
@@ -275,9 +325,26 @@ const paintSound = () => {
 };
 paintSound();
 soundBtn.addEventListener('click', () => { sound.set(!sound.on); paintSound(); });
-$$('a, button').forEach((el) => {
-  el.addEventListener('pointerenter', () => sound.tick());
-  el.addEventListener('pointerdown', () => sound.press());
+$$('a, button').forEach((el) => el.addEventListener('pointerenter', () => sound.tick()));
+
+// every click gets an answer: a tap you can hear, a ring you can see, a buzz you can feel
+window.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0) return;
+  const el = e.target;
+  const onBoard = boardLive() && overBoard(el);
+  fx?.burst(e.clientX, e.clientY, { dark: !!el.closest?.('.hire, .contact'), big: onBoard });
+  if (el.closest?.('a, button, [data-cursor]')) sound.press();
+  else sound.tap(onBoard ? 0.8 : 1);
+  buzz(8);
+});
+
+// the first deliberate click turns sound on, unless the visitor has muted it before
+window.addEventListener('click', (e) => {
+  if (sound.on || sound.chosen || e.target.closest('a, .sound')) return;
+  sound.set(true);
+  paintSound();
+  soundBtn.classList.add('just-on');
+  setTimeout(() => soundBtn.classList.remove('just-on'), 1200);
 });
 
 // ---------- small things under the hand (fine pointers only) ----------
@@ -324,7 +391,6 @@ $$('[data-copy]').forEach((btn) => btn.addEventListener('click', async () => {
 }));
 
 // ---------- the cursor: one ring that follows everywhere and says what a click will do ----------
-const fineHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 const cursor = $('.cursor');
 const cursorLabel = $('.cursor span');
 if (cursor && fineHover && !reduced) {
@@ -338,8 +404,9 @@ if (cursor && fineHover && !reduced) {
     const tagged = el?.closest('[data-cursor]');
     if (tagged) { mode = 'label'; label = tagged.dataset.cursor; }
     else if (el?.closest('a, button')) { mode = 'link'; label = ''; }
-    else if (el?.closest('.readout, .hero-foot, .hero-title, .top, main section:not(.hero):not(.game)')) { mode = ''; label = ''; }
+    else if (!overBoard(el)) { mode = ''; label = ''; }
     else { mode = 'board'; label = ''; }
+    fx?.move(e.clientX, e.clientY, mode === 'board' && boardLive());
   }, { passive: true });
   document.documentElement.addEventListener('pointerleave', () => cursor.classList.remove('is-live'));
   gsap.ticker.add(() => {
@@ -367,19 +434,15 @@ if (cursor && fineHover && !reduced) {
     const px = gsap.quickTo(pill, 'x', { duration: 0.6, ease: 'power3.out' });
     const py = gsap.quickTo(pill, 'y', { duration: 0.6, ease: 'power3.out' });
     let shown = false, done = false;
-    const hide = () => { if (done) return; done = true; pill.classList.remove('is-on'); hero.removeEventListener('click', onClick); };
+    const hide = () => { if (done) return; done = true; pill.classList.remove('is-on'); };
     const hero = $('.hero');
     const onMove = (e) => {
       if (done) return;
       px(e.clientX + 22); py(e.clientY + 22);
       if (!shown) { shown = true; pill.classList.add('is-on'); setTimeout(hide, 5000); }
     };
-    const onClick = (e) => {
-      if (e.target.closest('a, button')) return;
-      sound.set(true); paintSound(); sound.press(); hide();
-    };
     hero.addEventListener('pointermove', onMove, { passive: true });
-    hero.addEventListener('click', onClick);
+    window.addEventListener('click', hide);
     window.addEventListener('scroll', () => { if (window.scrollY > 120) hide(); }, { passive: true });
   }
 }
@@ -401,3 +464,124 @@ if (lenis && !reduced) {
     benders.forEach((b) => b(k));
   });
 }
+
+// ---------- the name answers the hand: letters lean away from the pointer, a click shuffles them ----------
+const titleLines = $$('.hero-title [data-line]');
+$('.hero-title')?.setAttribute('aria-label', titleLines.map((l) => l.textContent).join(' '));
+const chars = [];
+titleLines.forEach((line) => {
+  const word = line.textContent;
+  line.textContent = '';
+  [...word].forEach((c) => {
+    const s = document.createElement('span');
+    s.className = 'hc';
+    s.textContent = c;
+    s.setAttribute('aria-hidden', 'true');
+    line.append(s);
+    chars.push(s);
+  });
+});
+if (!reduced && fineHover && chars.length) {
+  const movers = chars.map((c) => ({
+    el: c,
+    x: gsap.quickTo(c, 'x', { duration: 0.9, ease: 'elastic.out(1, 0.35)' }),
+    y: gsap.quickTo(c, 'y', { duration: 0.9, ease: 'elastic.out(1, 0.35)' }),
+    r: gsap.quickTo(c, 'rotation', { duration: 0.9, ease: 'elastic.out(1, 0.35)' }),
+  }));
+  const R = 150;
+  window.addEventListener('pointermove', (e) => {
+    if (window.scrollY > window.innerHeight) return;
+    for (const m of movers) {
+      const b = m.el.getBoundingClientRect();
+      const cx = b.left + b.width / 2 - gsap.getProperty(m.el, 'x');
+      const cy = b.top + b.height / 2 - gsap.getProperty(m.el, 'y');
+      const dx = cx - e.clientX, dy = cy - e.clientY;
+      const d = Math.hypot(dx, dy);
+      const f = d < R ? (1 - d / R) ** 2 : 0;
+      m.x(d ? (dx / d) * f * 22 : 0);
+      m.y(d ? (dy / d) * f * 16 : 0);
+      m.r(d ? (dx / d) * f * 7 : 0);
+    }
+  }, { passive: true });
+}
+// a click on a word shuffles its letters and settles them back one by one, each a note higher
+titleLines.forEach((line) => {
+  const cs = [...line.querySelectorAll('.hc')];
+  const word = cs.map((c) => c.textContent);
+  let busy = false;
+  line.addEventListener('click', () => {
+    if (busy || reduced) return;
+    busy = true;
+    const start = performance.now();
+    let settled = 0;
+    const step = (now) => {
+      const n = Math.floor((now - start) / 55);
+      while (settled < Math.min(n, cs.length)) { sound.letter(settled); settled++; }
+      cs.forEach((c, i) => { c.textContent = i < settled ? word[i] : word[(Math.random() * word.length) | 0]; });
+      if (settled < cs.length) requestAnimationFrame(step);
+      else busy = false;
+    };
+    requestAnimationFrame(step);
+  });
+});
+
+// ---------- secrets: six things to find, counted in the footer, kept between visits ----------
+const SECRETS = {
+  opera: 'You played the whole Opera Game.',
+  king: 'The king does not like being poked.',
+  spin: 'A full turn of the board.',
+  konami: 'Terminal mode. Enter the code again to leave it.',
+  sudo: 'nikita is not in the sudoers file. This incident will be reported.',
+  e4: '1. e4, best by test.',
+};
+const TOTAL = Object.keys(SECRETS).length;
+let found = [];
+try { found = JSON.parse(localStorage.getItem('na-secrets') || '[]').filter((k) => k in SECRETS); } catch { /* fresh */ }
+const countEl = $('.secrets-count');
+const hintEl = $('.secrets-hint');
+const paintSecrets = () => {
+  if (countEl) countEl.textContent = String(found.length);
+  if (hintEl && found.length === TOTAL) hintEl.textContent = 'All of them. Thanks for poking around.';
+};
+paintSecrets();
+const toast = $('.toast');
+let toastTimer = 0;
+function say(text, tag = '') {
+  if (!toast) return;
+  toast.querySelector('.toast-tag').textContent = tag;
+  toast.querySelector('.toast-text').textContent = text;
+  toast.classList.add('is-on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('is-on'), 3600);
+}
+function secret(key, again = false) {
+  if (found.includes(key)) { if (again) say(SECRETS[key]); return; }
+  found.push(key);
+  try { localStorage.setItem('na-secrets', JSON.stringify(found)); } catch { /* ignore */ }
+  paintSecrets();
+  say(SECRETS[key], `${found.length} of ${TOTAL}`);
+  sound.secret();
+  buzz([30, 50, 30, 50, 60]);
+}
+
+// keys: the Konami code, and a few words typed anywhere on the page
+const KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+let keys = [], typed = '';
+window.addEventListener('keydown', (e) => {
+  if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest?.('input, textarea')) return;
+  keys = [...keys, e.key.length === 1 ? e.key.toLowerCase() : e.key].slice(-KONAMI.length);
+  if (keys.join() === KONAMI.join()) {
+    keys = [];
+    const on = boardApi?.toggleWire();
+    if (on !== undefined) { secret('konami', true); if (!on) say('Back to wood and stone.'); }
+  }
+  if (e.key.length === 1) {
+    typed = (typed + e.key.toLowerCase()).slice(-8);
+    if (typed.endsWith('sudo')) { typed = ''; secret('sudo', true); }
+    if (typed.endsWith('e4')) { typed = ''; secret('e4', true); }
+  }
+});
+
+// for the people who open the console first
+console.log('%cHello, console reader.', 'font: 600 15px system-ui; color: #9fc7b8');
+console.log('Six secrets on this page. Here is one, in base64: dHlwZSBlNCBvbiB0aGUgcGFnZQ==');
