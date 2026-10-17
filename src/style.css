@@ -67,7 +67,7 @@ input, textarea { caret-color: var(--accent); }
   transition: transform var(--t-press) var(--ease-out), background-color var(--t-hover) ease;
 }
 .button:hover { background: #b6d6ca; }
-.button:active { transform: scale(0.97); }
+.button:active { transform: scale(0.97); transition-duration: 80ms; }
 .link {
   font-weight: 600; text-decoration: underline; text-decoration-thickness: 1px;
   text-underline-offset: 0.3em; transition: text-decoration-thickness var(--t-hover) ease, text-underline-offset var(--t-hover) ease;
@@ -94,10 +94,15 @@ main, .foot { position: relative; z-index: 1; }
   pointer-events: none;
 }
 .top a { pointer-events: auto; text-decoration: none; }
-.top.is-solid { background: var(--bg); }
-.top.is-solid.on-light { background: var(--ink); color: var(--bg); }
+/* past the hero the header becomes a frosted layer: content stays visible as it scrolls beneath */
+.top.is-solid {
+  background: color-mix(in oklab, var(--bg) 72%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+}
+.top.is-solid.on-light { background: color-mix(in oklab, var(--ink) 78%, transparent); color: var(--bg); }
 .top.on-light, .top.on-accent { color: var(--accent-ink); }
-.top.is-solid.on-accent { background: var(--accent); }
+.top.is-solid.on-accent { background: color-mix(in oklab, var(--accent) 80%, transparent); }
 .top.is-hidden { transform: translateY(-100%); }
 .top-right { display: flex; align-items: center; gap: clamp(20px, 3vw, 44px); }
 .top nav { display: flex; gap: clamp(16px, 2.4vw, 36px); }
@@ -122,7 +127,7 @@ main, .foot { position: relative; z-index: 1; }
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 @media (prefers-reduced-motion: no-preference) {
-  .grain { animation: grain 1s steps(6) infinite; }
+  .grain { animation: grain 1s steps(6) infinite; will-change: transform; }
 }
 @keyframes grain {
   0% { transform: translate(0, 0); } 20% { transform: translate(-3%, 2%); } 40% { transform: translate(2%, -3%); }
@@ -160,7 +165,7 @@ main, .foot { position: relative; z-index: 1; }
 
 /* ---------- the game ---------- */
 .game { height: 500vh; }
-.game-pin { position: sticky; top: 0; height: 100svh; display: flex; align-items: center; padding: 0 var(--margin); }
+.game-pin { position: sticky; top: 0; height: 100svh; display: flex; align-items: center; padding: 0 var(--margin); overflow: hidden; }
 .readout { width: min(34vw, 500px); display: grid; gap: 22px; }
 .move {
   font-family: var(--display); font-weight: 800; font-size: var(--step-head);
@@ -299,6 +304,15 @@ main, .foot { position: relative; z-index: 1; }
   .lineup col.c-org { width: 34%; }
   .lineup col.c-year { width: 20%; }
   .lineup td:nth-child(3) { visibility: hidden; font-size: 0; padding: 0; }
+}
+
+/* short landscape screens (phones on their side): keep the readout to the move and its note */
+@media (max-height: 560px) and (min-width: 561px) {
+  .readout { gap: 10px; padding-top: 48px; }
+  .movelist, .caption { display: none; }
+  .move { font-size: clamp(2.2rem, 13vh, 4rem); }
+  .note { font-size: 1.05rem; min-height: 0; }
+  .hero { row-gap: 20px; }
 }
 
 /* ---------- phone ---------- */

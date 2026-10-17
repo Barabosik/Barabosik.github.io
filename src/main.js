@@ -34,21 +34,26 @@ const moveText = $('.move-text');
 const note = $('.note');
 let shownIdx = -2;
 let shownNote = 0;
+let noteTl = null;
 
 // which plies take a piece, so the board can sound a capture instead of a plain move
 const CAPTURES = new Set(buildTracks().filter((p) => p.capturedAt !== null).map((p) => p.capturedAt));
 
+let lastSound = 0;
 function updateReadout(ply) {
-  const idx = Math.min(PLIES.length - 1, Math.ceil(ply) - 1);
+  const idx = Math.min(PLIES.length - 1, Math.ceil(ply - 0.001) - 1);
   if (idx === shownIdx) return;
-  if (shownIdx > -2 && idx >= 0) {
+  // when scrubbing fast, several plies pass in one frame: play one sound, not a pile of them
+  const now = performance.now();
+  if (shownIdx > -2 && idx >= 0 && now - lastSound > 70) {
+    lastSound = now;
     if (idx === PLIES.length - 1 && idx > shownIdx) sound.mate();
     else if (CAPTURES.has(idx)) sound.capture();
     else sound.move();
   }
   shownIdx = idx;
   moveText.textContent = idx < 0 ? 'Paris, 1858' : moveLabel(idx);
-  if (!reduced) gsap.fromTo(moveText, { yPercent: 35, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 0.35, ease: 'power3.out', overwrite: true });
+  if (!reduced) gsap.fromTo(moveText, { yPercent: 30, opacity: 0.2 }, { yPercent: 0, opacity: 1, duration: 0.3, ease: 'power3.out', overwrite: 'auto' });
   moveSpans.forEach((s, i) => {
     s.classList.toggle('on', i === idx);
     s.classList.toggle('ahead', i > idx);
@@ -59,10 +64,12 @@ function updateReadout(ply) {
     shownNote = n;
     if (reduced) note.textContent = NOTES[n].text;
     else {
-      gsap.timeline({ overwrite: true })
-        .to(note, { opacity: 0, y: -8, duration: 0.18, ease: 'power2.in' })
-        .add(() => { note.textContent = NOTES[n].text; })
-        .fromTo(note, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.45, ease: 'power3.out' });
+      // one running swap at a time: a new note kills the previous fade instead of queueing behind it
+      noteTl?.kill();
+      noteTl = gsap.timeline()
+        .to(note, { opacity: 0, y: -8, duration: 0.16, ease: 'power2.in' })
+        .add(() => { note.textContent = NOTES[shownNote].text; })
+        .to(note, { opacity: 1, y: 0, duration: 0.4, ease: 'power3.out', startAt: { y: 10 } });
     }
   }
 }
@@ -82,7 +89,8 @@ if (webglAvailable()) {
 if (board) {
   let active = true;
   gsap.ticker.add((_, dt) => {
-    if (active && !document.hidden) board.render(Math.min(dt, 50) / 1000);
+    // the readout follows the eased ply the board actually draws, so text and pieces agree
+    if (active && !document.hidden) updateReadout(board.render(Math.min(dt, 50) / 1000));
   });
   if (!reduced) gsap.to(board, { intro: 1, duration: 2.1, ease: 'none', delay: 0.15 });
 
@@ -92,18 +100,20 @@ if (board) {
   });
   ScrollTrigger.create({
     trigger: '.game', start: 'top top', end: 'bottom bottom', scrub: true,
-    onUpdate: (st) => updateReadout(board.setGame(st.progress)),
+    onUpdate: (st) => board.setGame(st.progress),
+    onRefresh: (st) => { board.setGame(st.progress); board.settle(); },
   });
   // the about section is opaque: once it covers the screen, stop drawing
   ScrollTrigger.create({
     trigger: '.about', start: 'top top',
     onEnter: () => { active = false; canvas.classList.add('is-off'); },
-    onLeaveBack: () => { active = true; canvas.classList.remove('is-off'); },
+    onLeaveBack: () => { active = true; board.settle(); canvas.classList.remove('is-off'); },
   });
 
   window.addEventListener('pointermove', (e) => {
     board.pointer((e.clientX / window.innerWidth) * 2 - 1, (e.clientY / window.innerHeight) * 2 - 1);
   }, { passive: true });
+  document.documentElement.addEventListener('pointerleave', () => board.pointerOff());
   window.addEventListener('resize', () => board.resize());
 } else {
   document.documentElement.classList.add('no-webgl');

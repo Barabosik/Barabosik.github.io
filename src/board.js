@@ -79,7 +79,7 @@ const FRAMES = {
 };
 const SHIFT = {
   wide: { hero: [0.28, 0.24], game: [0.25, 0.02] },
-  tall: { hero: [0, 0.3], game: [0, 0.2] },
+  tall: { hero: [0, 0.3], game: [0, 0.17] },
 };
 
 export function createBoard(canvas, { reducedMotion = false } = {}) {
@@ -163,24 +163,34 @@ export function createBoard(canvas, { reducedMotion = false } = {}) {
     white: new THREE.MeshPhysicalMaterial({ color: COLORS.bone, roughness: 0.34, clearcoat: 0.5, clearcoatRoughness: 0.3 }),
     black: new THREE.MeshPhysicalMaterial({ color: COLORS.ebony, roughness: 0.3, clearcoat: 0.7, clearcoatRoughness: 0.22 }),
   };
+  const meshes = [];
   const pieces = buildTracks().map((p) => {
     const mesh = new THREE.Mesh(geos[p.type], p.white ? mats.white : mats.black);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     if (p.type === 'n') mesh.rotation.y = p.white ? Math.PI / 2 : -Math.PI / 2;
     board.add(mesh);
-    return { ...p, mesh, rank: Number(p.start[1]), lift: 0 };
+    const piece = { ...p, mesh, rank: Number(p.start[1]), lift: 0, liftV: 0 };
+    mesh.userData.piece = piece;
+    meshes.push(mesh);
+    return piece;
   });
   const blackKing = pieces.find((p) => p.type === 'k' && !p.white);
 
   // ---------- state ----------
-  const state = { intro: reducedMotion ? 1 : 0, hero: 0, game: 0, ply: 0, px: 0, py: 0, tx: 0, ty: 0, wide: true, hover: null };
+  // scroll writes targets (heroT, gameT, plyT); each frame eases the drawn values toward them,
+  // so fast scrubbing and direction changes stay fluid instead of stepping with every wheel tick
+  const state = {
+    intro: reducedMotion ? 1 : 0, hero: 0, game: 0, ply: 0, heroT: 0, gameT: 0, plyT: 0,
+    px: 0, py: 0, tx: 0, ty: 0, wide: true, hover: null, hoverPiece: null,
+  };
   const ray = new THREE.Raycaster();
   const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   const hit = new THREE.Vector3();
   const ndc = new THREE.Vector2();
 
-  function placePieces(ply) {
+  function placePieces(ply, dt = 1 / 60) {
+    const wl = (2 * Math.PI) / 0.38, zl = 0.62;
     for (const p of pieces) {
       let [x, z] = squareXZ(p.start);
       let y = 0;
@@ -208,13 +218,15 @@ export function createBoard(canvas, { reducedMotion = false } = {}) {
       const delay = (p.white ? p.rank - 1 : 8 - p.rank) * 0.06 + ('abcdefgh'.indexOf(p.start[0]) * 0.012);
       const rise = easeOut(clamp01((state.intro * 1.5 - delay) / 0.7));
       y -= (1 - rise) * 1.45;
-      // pieces near the pointer rise a little, as if the hand is about to pick one up
+      // the piece under the pointer rises, as if the hand is about to pick it up; its neighbours stir
       let lift = 0;
-      if (state.hover && p.capturedAt === null) {
+      if (p === state.hoverPiece) lift = 0.34;
+      else if (state.hover && !(p.capturedAt !== null && ply > p.capturedAt)) {
         const d = Math.hypot(x - state.hover.x, z - state.hover.z);
-        if (d < 1.15) lift = 0.24 * (1 - d / 1.15) ** 2;
+        if (d < 1.2) lift = 0.12 * (1 - d / 1.2) ** 2;
       }
-      p.lift += (lift - p.lift) * 0.14;
+      p.liftV += (wl * wl * (lift - p.lift) - 2 * zl * wl * p.liftV) * Math.min(dt, 1 / 30);
+      p.lift += p.liftV * Math.min(dt, 1 / 30);
       y += p.lift;
       p.mesh.position.set(x + Math.sin(tilt) * 0.35, y, z);
       p.mesh.rotation.z = tilt;
@@ -243,7 +255,11 @@ export function createBoard(canvas, { reducedMotion = false } = {}) {
     const orbit = lerp(0, 0.34, clamp01(g / 0.86));
     let az = lerp(az0 + orbit, C.az, mate) + state.px * 0.07;
     let el = lerp(el0, C.el, mate) - state.py * 0.035;
-    const r = lerp(r0, C.r, mate) * (state.wide ? 1 : lerp(1.25, 1, h));
+    // narrow screens: back the camera off until the board fits the width (the hero may bleed a little,
+    // the game view shows the whole board, the mate close-up crops in)
+    const tanH = Math.tan((camera.fov * Math.PI) / 360) * camera.aspect;
+    const fitR = 4.7 / tanH;
+    const r = Math.max(lerp(r0, C.r, mate), fitR * lerp(lerp(0.8, 0.94, h), 0.74, mate));
     const look = [0, 1, 2].map((i) => lerp(lerp(A.look[i], B.look[i], h), C.look[i], mate));
     camera.position.set(
       look[0] + r * Math.cos(el) * Math.sin(az),
@@ -273,24 +289,67 @@ export function createBoard(canvas, { reducedMotion = false } = {}) {
     camera.updateProjectionMatrix();
   }
 
+  // critically damped springs (Apple's "damping 1, response" model): a reversal re-targets the spring
+  // and keeps its velocity, so scrubbing back and forth never hits a brick wall
+  const springs = { hero: 0, game: 0, ply: 0 };
+  function spring(key, target, response, dt) {
+    const w = (2 * Math.PI) / response;
+    let x = state[key], v = springs[key];
+    // fixed small steps keep it stable when a frame runs long
+    for (let left = dt; left > 0; left -= 1 / 240) {
+      const h = Math.min(left, 1 / 240);
+      v += (w * w * (target - x) - 2 * w * v) * h;
+      x += v * h;
+    }
+    if (Math.abs(target - x) < 1e-4 && Math.abs(v) < 1e-3) { x = target; v = 0; }
+    state[key] = x;
+    springs[key] = v;
+  }
+  const follow = (v, t, rate, dt) => v + (t - v) * (1 - Math.exp(-dt * rate));
+
+  // if the GPU cannot keep up, trade resolution for frames (never the other way, so it cannot oscillate)
+  let dpr = Math.min(window.devicePixelRatio || 1, 1.75);
+  let slow = 0;
+  function adapt(dt) {
+    slow = dt > 1 / 40 ? slow + dt : Math.max(0, slow - dt * 0.5);
+    if (slow > 0.8 && dpr > 1) {
+      dpr = Math.max(1, dpr - 0.25);
+      renderer.setPixelRatio(dpr);
+      resize();
+      slow = 0;
+    }
+  }
+
   let time = 0;
   function render(dt = 1 / 60) {
     time += dt;
-    state.px += (state.tx - state.px) * 0.06;
-    state.py += (state.ty - state.py) * 0.06;
+    if (time > 2) adapt(dt);
+    spring('hero', state.heroT, 0.7, dt);
+    spring('game', state.gameT, 0.7, dt);
+    spring('ply', state.plyT, 0.6, dt);
+    state.px = follow(state.px, state.tx, 3.5, dt);
+    state.py = follow(state.py, state.ty, 3.5, dt);
     if (!reducedMotion) board.rotation.y = Math.sin(time * 0.18) * 0.035 * (1 - state.hero);
+    state.hoverPiece = null;
     if (state.pointerOn) {
       ndc.set(state.tx, -state.ty);
       camera.updateMatrixWorld();
       ray.setFromCamera(ndc, camera);
-      if (ray.ray.intersectPlane(floor, hit)) {
+      // hit the pieces themselves first: tall pieces cover squares far behind them
+      const hits = ray.intersectObjects(meshes, false);
+      const piece = hits.find((h) => h.object.visible)?.object.userData.piece;
+      if (piece) {
+        state.hoverPiece = piece;
+        state.hover = { x: piece.mesh.position.x, z: piece.mesh.position.z };
+      } else if (ray.ray.intersectPlane(floor, hit)) {
         board.worldToLocal(hit);
         state.hover = Math.abs(hit.x) < 4.4 && Math.abs(hit.z) < 4.4 ? { x: hit.x, z: hit.z } : null;
       }
     }
-    placePieces(state.ply);
+    placePieces(state.ply, dt);
     frame();
     renderer.render(scene, camera);
+    return state.ply;
   }
 
   resize();
@@ -301,12 +360,20 @@ export function createBoard(canvas, { reducedMotion = false } = {}) {
     render,
     set intro(v) { state.intro = v; },
     get intro() { return state.intro; },
-    setHero(v) { state.hero = clamp01(v); },
+    get ply() { return state.ply; },
+    get hovering() { return !!state.hoverPiece; },
+    setHero(v) { state.heroT = clamp01(v); if (reducedMotion) state.hero = state.heroT; },
     setGame(v) {
-      state.game = clamp01(v);
+      state.gameT = clamp01(v);
       // plies run between 4% and 88% of the section; the rest is camera
-      state.ply = clamp01((state.game - 0.04) / 0.84) * PLIES.length;
-      return state.ply;
+      state.plyT = clamp01((state.gameT - 0.04) / 0.84) * PLIES.length;
+      if (reducedMotion) { state.game = state.gameT; state.ply = state.plyT; }
+      return state.plyT;
+    },
+    // jump straight to the targets, for the first frame and after the board was off screen
+    settle() {
+      state.hero = state.heroT; state.game = state.gameT; state.ply = state.plyT;
+      springs.hero = springs.game = springs.ply = 0;
     },
     pointer(x, y) {
       if (reducedMotion) return;
@@ -314,6 +381,7 @@ export function createBoard(canvas, { reducedMotion = false } = {}) {
       state.ty = y;
       state.pointerOn = true;
     },
+    pointerOff() { state.pointerOn = false; state.hover = null; },
     dispose() { renderer.dispose(); },
   };
 }
