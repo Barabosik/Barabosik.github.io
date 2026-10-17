@@ -95,9 +95,12 @@ function updateReadout(ply) {
   if (shownIdx > -2 && idx >= 0 && now - lastSound > 70) {
     lastSound = now;
     if (idx === PLIES.length - 1 && idx > shownIdx) { sound.mate(); setTimeout(() => secret('opera'), 900); }
-    else if (ANNOTATIONS[idx] && idx > shownIdx) { sound.capture(); setTimeout(() => sound[ANNOTATIONS[idx]](), 260); }
-    else if (CAPTURES.has(idx)) sound.capture();
-    else sound.move();
+    else {
+      if (CAPTURES.has(idx)) sound.capture();
+      else if (/O-O/.test(PLIES[idx].san)) sound.castle();
+      else sound.move(idx % 2 === 0);
+      if (ANNOTATIONS[idx] && idx > shownIdx) setTimeout(() => sound[ANNOTATIONS[idx]](), 260);
+    }
   }
   shownIdx = idx;
   decode(moveText, idx < 0 ? 'Paris, 1858' : moveLabel(idx));

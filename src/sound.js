@@ -78,6 +78,61 @@ function tone(t, freq, peak, decay, type = 'sine') {
   o.stop(t + decay + 0.05);
 }
 
+// ---------- the board's voice: modal wood. Each sound is a handful of resonances that ring and die fast ----------
+// A piece set down on a wooden board is a few body modes (a low thud, a mid knock, a bright tick) plus a
+// millisecond of contact noise. Modes: [Hz, level, ms until silent].
+const MOVE_MODES = [[915, 0.5, 62], [474, 0.55, 40], [1303, 0.38, 46], [1077, 0.27, 44], [172, 0.2, 38], [205, 0.12, 50], [721, 0.13, 40],
+  [484, 0.006, 160], [904, 0.006, 170], [614, 0.005, 150], [689, 0.004, 150]];
+const OPP_MODES = [[883, 0.5, 62], [463, 0.36, 40], [1270, 0.42, 46], [1055, 0.26, 44], [312, 0.16, 40], [161, 0.18, 38], [592, 0.1, 45],
+  [904, 0.007, 170], [614, 0.004, 150], [452, 0.004, 150]];
+const CAPTURE_MODES = [[1281, 0.42, 55], [1432, 0.4, 62], [937, 0.36, 46], [1852, 0.24, 40], [151, 0.3, 50], [1120, 0.2, 50], [474, 0.16, 45],
+  [1443, 0.014, 300], [1238, 0.01, 280], [452, 0.007, 220], [947, 0.007, 220]];
+
+function wood(t, modes, level = 1, click = 1) {
+  const out = ctx.createGain();
+  out.gain.value = 0.42 * level;
+  out.connect(master);
+  const shift = drift(0.03);                         // no two set-downs are quite the same
+  modes.forEach(([f, g, ms]) => {
+    const o = ctx.createOscillator();
+    o.frequency.value = f * shift;
+    const e = ctx.createGain();
+    e.gain.setValueAtTime(0.0001, t);
+    e.gain.exponentialRampToValueAtTime(g, t + 0.0015);
+    e.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000);
+    o.connect(e).connect(out);
+    o.start(t);
+    o.stop(t + ms / 1000 + 0.02);
+  });
+  // the contact itself: a couple of milliseconds of bright noise
+  const n = noise();
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = 2600;
+  bp.Q.value = 0.9;
+  const ng = ctx.createGain();
+  env(ng, t, 0.22 * level * click, 0.0008, 0.007);
+  n.connect(bp).connect(ng).connect(master);
+  n.start(t, Math.random() * 0.3);
+  n.stop(t + 0.02);
+}
+
+// the end of the game: two short pure notes, held a moment, then cut clean
+function gameEnd(t) {
+  [[t, 624, 0.12, 0.006], [t + 0.12, 592, 0.12, 0.018], [t + 0.12, 711, 0.06, 0.016]].forEach(([at, f, g, hold]) => {
+    const o = ctx.createOscillator();
+    o.frequency.value = f;
+    const e = ctx.createGain();
+    e.gain.setValueAtTime(0.0001, at);
+    e.gain.exponentialRampToValueAtTime(g, at + 0.002);
+    e.gain.setValueAtTime(g * 0.8, at + 0.002 + hold);
+    e.gain.exponentialRampToValueAtTime(0.0001, at + 0.012 + hold);
+    o.connect(e).connect(master);
+    o.start(at);
+    o.stop(at + hold + 0.03);
+  });
+}
+
 // each kind of sound keeps its own anti-spam clock, so a click never swallows a move
 function play(fn, gap = 45, kind = 'ui') {
   if (!enabled) return;
@@ -313,11 +368,14 @@ export const sound = {
     if (on) { audio(); play((t) => { tone(t, 660, 0.08, 0.12); tone(t + 0.07, 990, 0.06, 0.16); }, 0); }
     setMusic(on);
   },
-  move: () => play((t) => knock(t, 1 + (Math.random() - 0.5) * 0.08), 45, 'move'),
-  capture: () => play((t) => { knock(t, 1.05, 1); knock(t + 0.075, 0.82, 0.9); }, 45, 'move'),
+  // white's moves knock a touch fuller than black's, the way a board sounds from your own side
+  move: (white = true) => play((t) => wood(t, white ? MOVE_MODES : OPP_MODES, white ? 1 : 0.7), 45, 'move'),
+  capture: () => play((t) => { wood(t, MOVE_MODES, 0.45, 0.6); wood(t + 0.008, CAPTURE_MODES, 1, 1.3); }, 45, 'move'),
+  castle: () => play((t) => { wood(t, MOVE_MODES, 0.13); wood(t + 0.09, MOVE_MODES, 1); }, 45, 'move'),
   mate: () => play((t) => {
-    knock(t, 0.75, 1.2);
-    [98, 146.8, 196, 293.7].forEach((f, i) => tone(t + 0.04 + i * 0.03, f, 0.09, 2.2, i % 2 ? 'triangle' : 'sine'));
+    wood(t, MOVE_MODES, 1);
+    gameEnd(t + 0.16);
+    [98, 146.8, 196].forEach((f, i) => tone(t + 0.2 + i * 0.03, f, 0.04, 2, i % 2 ? 'triangle' : 'sine'));
   }, 0, 'mate'),
   tick: () => play((t) => tone(t, 2600, 0.025, 0.03), 60, 'tick'),
   tap: (pitch = 1, level = 1) => play((t) => tap(t, pitch, level), 55, 'tap'),
@@ -334,7 +392,7 @@ export const sound = {
     o.stop(t + 0.2);
     tap(t, 1.1, 0.7);
   }, 40, 'hop'),
-  land: () => play((t) => knock(t, 1.08 * drift(0.1), 0.85), 30, 'land'),
+  land: () => play((t) => wood(t, MOVE_MODES, 0.85), 30, 'land'),
   // annotated moves: a shimmering rising bell for brilliant, a clean two-note for great
   brilliant: () => play((t) => {
     [659.25, 830.61, 987.77, 1318.51, 1661.22].forEach((f, i) => {
