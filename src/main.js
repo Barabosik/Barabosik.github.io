@@ -18,6 +18,11 @@ const buzz = (p) => { if (coarse && navigator.vibrate) navigator.vibrate(p); };
 // is this spot the open board, rather than text or a control laid over it?
 const overBoard = (el) => !!el && !el.closest('a, button, [data-cursor], .readout, .hero-foot, .hero-title, .top, .foot, main section:not(.hero):not(.game)');
 const fx = !reduced ? createFx($('.fx')) : null;
+// the entrance (first visit of a session only); the board waits for it before its pieces rise
+const introOn = document.documentElement.classList.contains('is-intro');
+let introDone = () => {};
+const introReady = new Promise((r) => { introDone = r; });
+if (!introOn) introDone();
 
 // ---------- smooth scroll on GSAP's clock, so scroll, tweens and WebGL share a frame ----------
 let lenis = null;
@@ -147,7 +152,7 @@ async function startBoard() {
     // the readout follows the eased ply the board actually draws, so text and pieces agree
     if (active && !document.hidden) updateReadout(board.render(Math.min(dt, 50) / 1000));
   });
-  if (!reduced) gsap.to(board, { intro: 1, duration: 2.1, ease: 'none', delay: 0.15 });
+  if (!reduced) introReady.then(() => gsap.to(board, { intro: 1, duration: 2.1, ease: 'none', delay: 0.15 }));
 
   ScrollTrigger.create({
     trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true,
@@ -480,16 +485,20 @@ titleLines.forEach((line) => {
     chars.push(s);
   });
 });
+let lettersLive = !introOn;
 if (!reduced && fineHover && chars.length) {
+  // soft and slow to settle: pushed letters overshoot, swing back and wobble before they rest
+  const jelly = { duration: 1.3, ease: 'elastic.out(1, 0.28)' };
   const movers = chars.map((c) => ({
     el: c,
-    x: gsap.quickTo(c, 'x', { duration: 0.9, ease: 'elastic.out(1, 0.35)' }),
-    y: gsap.quickTo(c, 'y', { duration: 0.9, ease: 'elastic.out(1, 0.35)' }),
-    r: gsap.quickTo(c, 'rotation', { duration: 0.9, ease: 'elastic.out(1, 0.35)' }),
+    x: gsap.quickTo(c, 'x', jelly),
+    y: gsap.quickTo(c, 'y', jelly),
+    r: gsap.quickTo(c, 'rotation', jelly),
+    sy: gsap.quickTo(c, 'scaleY', jelly),
   }));
   const R = 150;
   window.addEventListener('pointermove', (e) => {
-    if (window.scrollY > window.innerHeight) return;
+    if (!lettersLive || window.scrollY > window.innerHeight) return;
     for (const m of movers) {
       const b = m.el.getBoundingClientRect();
       const cx = b.left + b.width / 2 - gsap.getProperty(m.el, 'x');
@@ -500,6 +509,7 @@ if (!reduced && fineHover && chars.length) {
       m.x(d ? (dx / d) * f * 22 : 0);
       m.y(d ? (dy / d) * f * 16 : 0);
       m.r(d ? (dx / d) * f * 7 : 0);
+      m.sy(1 - f * 0.1);
     }
   }, { passive: true });
 }
@@ -584,3 +594,41 @@ window.addEventListener('keydown', (e) => {
 // for the people who open the console first
 console.log('%cHello, console reader.', 'font: 600 15px system-ui; color: #9fc7b8');
 console.log('Six secrets on this page. Here is one, in base64: dHlwZSBlNCBvbiB0aGUgcGFnZQ==');
+
+// ---------- the entrance ----------
+// The name rises out of black in the middle of the screen, then jumps to where it lives. On the way its
+// letters lean back against the motion; on landing they squash and wobble like jelly, one after another.
+async function playIntro() {
+  const html = document.documentElement;
+  try { sessionStorage.setItem('na-intro', '1'); } catch { /* ignore */ }
+  lenis?.stop();
+  await Promise.race([document.fonts.load('800 100px "Big Shoulders"'), new Promise((r) => setTimeout(r, 800))]);
+  const h1 = $('.hero-title');
+  const hr = h1.getBoundingClientRect();
+  const cr = chars.map((c) => c.getBoundingClientRect());
+  const lr = $$('.hero-title .line').map((l) => l.getBoundingClientRect());
+  const left = Math.min(...cr.map((r) => r.left)), right = Math.max(...cr.map((r) => r.right));
+  const cx = (left + right) / 2, cy = (lr[0].top + lr[lr.length - 1].bottom) / 2;
+  const s = Math.min(0.62, (window.innerWidth * 0.62) / (right - left));
+  const dx = window.innerWidth / 2 - cx, dy = window.innerHeight / 2 - cy;
+  gsap.set(h1, { x: dx, y: dy, scale: s, transformOrigin: `${cx - hr.left}px ${cy - hr.top}px` });
+  gsap.set(chars, { transformOrigin: '50% 85%' });
+  html.classList.add('intro-go');
+  const lean = dx > 0 ? -12 : 12;
+  gsap.timeline({ delay: 1.15 })
+    .to(h1, { x: 0, y: 0, scale: 1, duration: 1.1, ease: 'expo.inOut' }, 0)
+    .to(chars, { skewX: lean, scaleX: 1.06, duration: 0.45, ease: 'power2.in', stagger: { each: 0.018, from: 'end' } }, 0.05)
+    .add(() => { html.classList.add('intro-done'); introDone(); }, 0.5)
+    .fromTo(chars, { skewX: lean, scaleX: 1.14, scaleY: 0.8 }, {
+      skewX: 0, scaleX: 1, scaleY: 1, duration: 1.5, ease: 'elastic.out(1.1, 0.26)', stagger: 0.035, immediateRender: false,
+    }, 0.9)
+    .add(() => {
+      lenis?.start();
+      gsap.set(h1, { clearProps: 'transform' });
+      html.classList.add('title-free');
+      lettersLive = true;
+    }, 1.6)
+    .add(() => html.classList.remove('is-intro', 'intro-go', 'intro-done'), 2.6);
+}
+if (introOn) playIntro();
+else setTimeout(() => document.documentElement.classList.add('title-free'), 1500);

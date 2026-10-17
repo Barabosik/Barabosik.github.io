@@ -170,6 +170,20 @@ main, .foot { position: relative; z-index: 1; }
   .js [data-rise] { opacity: 0; transform: translateY(18px); animation: rise 800ms var(--ease-out) forwards; animation-delay: calc(var(--i) * 90ms + 420ms); }
 }
 @keyframes line-up { to { transform: none; } }
+/* once the name has arrived its letters may lean out of their line masks */
+.title-free .hero-title .line { overflow: visible; }
+
+/* ---------- the entrance: black screen, the name rises in the middle, then jumps to its place ---------- */
+.intro-veil { display: none; }
+.is-intro .intro-veil { display: block; position: fixed; inset: 0; z-index: 0; background: #000; pointer-events: none; }
+.is-intro .hero-title { visibility: hidden; }
+.is-intro .lines [data-line], .is-intro [data-rise] { animation-play-state: paused; }
+.is-intro.intro-go .hero-title { visibility: visible; }
+.is-intro.intro-go .lines [data-line] { animation-play-state: running; }
+.is-intro .top { opacity: 0; }
+.is-intro.intro-done .intro-veil { opacity: 0; transition: opacity 1100ms ease; }
+.is-intro.intro-done .top { opacity: 1; transition: opacity 900ms ease 200ms; }
+.is-intro.intro-done [data-rise] { animation-play-state: running; }
 @keyframes rise { to { opacity: 1; transform: none; } }
 
 /* ---------- the game ---------- */
