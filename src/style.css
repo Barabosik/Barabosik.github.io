@@ -188,7 +188,7 @@ main, .foot { position: relative; z-index: 1; }
 @keyframes rise { to { opacity: 1; transform: none; } }
 
 /* ---------- the game ---------- */
-.game { height: 500vh; }
+.game { height: 570vh; }
 .game-pin { position: sticky; isolation: isolate; top: 0; height: 100svh; display: flex; align-items: center; padding: 0 var(--margin); overflow: hidden; }
 .readout { width: min(34vw, 500px); display: grid; gap: 22px; }
 .move {

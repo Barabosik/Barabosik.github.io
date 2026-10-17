@@ -117,6 +117,22 @@ function burnable(base, uT, depth = false) {
   return m;
 }
 
+// ---------- the game on the scroll ----------
+// every move takes one unit of scroll; an annotated move also gets a pause after it, so the board rests on
+// the position (and its ! or !! badge) for a while before the game goes on
+const HOLD = 1.6;
+const SEGMENTS = PLIES.map((_, i) => 1 + (ANNOTATIONS[i] ? HOLD : 0));
+const SCROLL_UNITS = SEGMENTS.reduce((a, b) => a + b, 0);
+function plyAt(u) {
+  let at = 0;
+  for (let i = 0; i < SEGMENTS.length; i++) {
+    if (u <= at + 1) return i + Math.max(0, u - at);    // the move itself
+    if (u <= at + SEGMENTS[i]) return i + 1;           // resting on it
+    at += SEGMENTS[i];
+  }
+  return PLIES.length;
+}
+
 // ---------- camera framing ----------
 // Spherical framing around a look target, plus a screen-space shift so the board can sit
 // beside the text instead of under it.
@@ -237,9 +253,12 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
     sprite.renderOrder = 10;
     sprite.visible = false;
     const [x, z] = squareXZ(PLIES[idx].moves[0][1]);
-    sprite.position.set(x + 0.3, 1.5, z - 0.1);
+    // on the far ranks the badge would leave the top of the frame: lower it and bring it toward the camera
+    const far = z < -2;
+    const y = far ? 1.05 : 1.5;
+    sprite.position.set(x + (far ? 0.45 : 0.3), y, z + (far ? 0.5 : -0.1));
     board.add(sprite);
-    return { idx: Number(idx), sprite, y: 1.5, color: new THREE.Color(st.color), landed: false };
+    return { idx: Number(idx), sprite, y, color: new THREE.Color(st.color), landed: false };
   });
 
   const marks = [0, 1].map(() => {
@@ -789,7 +808,7 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
     setGame(v) {
       state.gameT = clamp01(v);
       // plies run between 4% and 88% of the section; the rest is camera
-      state.plyT = clamp01((state.gameT - 0.04) / 0.84) * PLIES.length;
+      state.plyT = plyAt(clamp01((state.gameT - 0.04) / 0.84) * SCROLL_UNITS);
       if (reducedMotion) { state.game = state.gameT; state.ply = state.plyT; }
       return state.plyT;
     },
