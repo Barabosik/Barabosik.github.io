@@ -1,7 +1,6 @@
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
-import { createBoard, webglAvailable } from './board.js';
 import { PLIES, NOTES, moveLabel, buildTracks } from './opera.js';
 import { sound } from './sound.js';
 
@@ -40,6 +39,27 @@ let noteTl = null;
 const CAPTURES = new Set(buildTracks().filter((p) => p.capturedAt !== null).map((p) => p.capturedAt));
 
 let lastSound = 0;
+// the move label decodes out of scrambled chess notation, the way a cipher settles into plain text
+const GLYPHS = 'abcdefgh12345678KQRBNx+#';
+let decodeRaf = 0;
+function decode(el, text) {
+  cancelAnimationFrame(decodeRaf);
+  if (reduced) { el.textContent = text; return; }
+  const start = performance.now();
+  const tick = (now) => {
+    const t = now - start;
+    const settled = Math.floor(Math.max(0, t - 60) / 34);
+    let out = '';
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      out += i < settled || ch === ' ' || ch === '.' ? ch : GLYPHS[(Math.random() * GLYPHS.length) | 0];
+    }
+    el.textContent = out;
+    if (settled < text.length) decodeRaf = requestAnimationFrame(tick);
+  };
+  decodeRaf = requestAnimationFrame(tick);
+}
+
 function updateReadout(ply) {
   const idx = Math.min(PLIES.length - 1, Math.ceil(ply - 0.001) - 1);
   if (idx === shownIdx) return;
@@ -52,7 +72,7 @@ function updateReadout(ply) {
     else sound.move();
   }
   shownIdx = idx;
-  moveText.textContent = idx < 0 ? 'Paris, 1858' : moveLabel(idx);
+  decode(moveText, idx < 0 ? 'Paris, 1858' : moveLabel(idx));
   if (!reduced) gsap.fromTo(moveText, { yPercent: 30, opacity: 0.2 }, { yPercent: 0, opacity: 1, duration: 0.3, ease: 'power3.out', overwrite: 'auto' });
   moveSpans.forEach((s, i) => {
     s.classList.toggle('on', i === idx);
@@ -75,18 +95,26 @@ function updateReadout(ply) {
 }
 updateReadout(0);
 
-// ---------- WebGL board ----------
+const progress = gsap.quickSetter('.game-progress i', 'scaleY');
+
+// ---------- WebGL board (three.js arrives as its own chunk, after the text has painted) ----------
 const canvas = $('.stage');
-let board = null;
-if (webglAvailable()) {
+async function startBoard() {
+  let board = null;
   try {
-    board = createBoard(canvas, { reducedMotion: reduced });
+    const { createBoard, webglAvailable } = await import('./board.js');
+    if (webglAvailable()) board = createBoard(canvas, { reducedMotion: reduced });
   } catch (err) {
     console.warn('WebGL board unavailable', err);
   }
-}
-
-if (board) {
+  if (!board) {
+    document.documentElement.classList.add('no-webgl');
+    moveText.textContent = '17. Rd8#';
+    note.textContent = NOTES[NOTES.length - 1].text;
+    moveSpans.forEach((s) => s.classList.remove('ahead'));
+    ScrollTrigger.refresh();
+    return;
+  }
   let active = true;
   gsap.ticker.add((_, dt) => {
     // the readout follows the eased ply the board actually draws, so text and pieces agree
@@ -100,8 +128,13 @@ if (board) {
   });
   ScrollTrigger.create({
     trigger: '.game', start: 'top top', end: 'bottom bottom', scrub: true,
-    onUpdate: (st) => board.setGame(st.progress),
+    onUpdate: (st) => { board.setGame(st.progress); progress(st.progress); },
     onRefresh: (st) => { board.setGame(st.progress); board.settle(); },
+  });
+  // as the page rises over the final position, the board dims away instead of being cut off
+  gsap.fromTo(canvas, { opacity: 1 }, {
+    opacity: 0.15, ease: 'none',
+    scrollTrigger: { trigger: '.about', start: 'top bottom', end: 'top top', scrub: true },
   });
   // the about section is opaque: once it covers the screen, stop drawing
   ScrollTrigger.create({
@@ -112,15 +145,30 @@ if (board) {
 
   window.addEventListener('pointermove', (e) => {
     board.pointer((e.clientX / window.innerWidth) * 2 - 1, (e.clientY / window.innerHeight) * 2 - 1);
+    cursorTo(e.clientX, e.clientY);
   }, { passive: true });
+  // a ring that names the square under it, only while the pointer is over the live board
+  const cursor = $(".cursor");
+  const cursorLabel = $('.cursor span');
+  const cx = cursor && gsap.quickTo(cursor, 'x', { duration: 0.35, ease: 'power3.out' });
+  const cy = cursor && gsap.quickTo(cursor, 'y', { duration: 0.35, ease: 'power3.out' });
+  let overUi = false;
+  function cursorTo(x, y) {
+    if (!cursor) return;
+    cx(x); cy(y);
+    const el = document.elementFromPoint(x, y);
+    overUi = !!el?.closest('a, button, .readout, .hero-foot, .hero-title, .top');
+  }
+  if (cursor) gsap.ticker.add(() => {
+    const sq = active && !overUi ? board.square : null;
+    cursor.classList.toggle('is-on', !!sq);
+    if (sq && cursorLabel.textContent !== sq) cursorLabel.textContent = sq;
+  });
   document.documentElement.addEventListener('pointerleave', () => board.pointerOff());
   window.addEventListener('resize', () => board.resize());
-} else {
-  document.documentElement.classList.add('no-webgl');
-  moveText.textContent = '17. Rd8#';
-  note.textContent = NOTES[NOTES.length - 1].text;
-  moveSpans.forEach((s) => s.classList.remove('ahead'));
+  ScrollTrigger.refresh();
 }
+startBoard();
 
 // ---------- fitted display lines ----------
 function fit(el, target) {
@@ -144,11 +192,12 @@ window.addEventListener('load', () => { fitAll(); ScrollTrigger.refresh(); });
 document.fonts.addEventListener('loadingdone', fitAll);
 window.addEventListener('resize', fitAll);
 
-// header: transparent over the hero, a solid band after it; hides while reading down, returns on the way up
+// header: transparent over the hero; turns frosted the moment the big name slides under it,
+// hides while reading down, returns on the way up
 const top = $('.top');
 let lastY = 0;
 ScrollTrigger.create({
-  start: () => window.innerHeight * 0.8, end: 'max',
+  trigger: '.hero-title', start: () => `top ${top.offsetHeight}px`, end: 'max',
   onUpdate: (st) => {
     const y = st.scroll();
     top.classList.add('is-solid');
@@ -165,6 +214,21 @@ ScrollTrigger.create({
 });
 
 // ---------- entrances: each section arrives in its own way ----------
+// the about paragraph lights up as it is read, word by word, tied to the scroll
+$$('[data-words]').forEach((p) => {
+  const words = p.textContent.trim().split(/\s+/);
+  p.textContent = '';
+  words.forEach((w, i) => {
+    const s = document.createElement('span');
+    s.className = 'w';
+    s.textContent = w;
+    p.append(s, i < words.length - 1 ? ' ' : '');
+  });
+  if (!reduced) gsap.fromTo(p.querySelectorAll('.w'), { opacity: 0.22 }, {
+    opacity: 1, ease: 'none', stagger: 0.05,
+    scrollTrigger: { trigger: p, start: 'top 78%', end: 'bottom 42%', scrub: 0.4 },
+  });
+});
 if (!reduced) {
   const once = (trigger, start = 'top 82%') => ({ trigger, start, once: true });
 
@@ -197,7 +261,7 @@ if (!reduced) {
 const soundBtn = $('.sound');
 const paintSound = () => {
   soundBtn.setAttribute('aria-pressed', String(sound.on));
-  soundBtn.querySelector('.sound-label').textContent = sound.on ? 'Sound on' : 'Sound off';
+  soundBtn.setAttribute('title', sound.on ? 'Sound on' : 'Sound off');
 };
 paintSound();
 soundBtn.addEventListener('click', () => { sound.set(!sound.on); paintSound(); });
@@ -227,10 +291,24 @@ if (!reduced) {
   if (window.innerWidth > 760) $$('.hire-list li').forEach((li, i) => {
     const vw = (n) => () => (window.innerWidth * n) / 100;
     gsap.fromTo(li, { x: vw(i % 2 ? 5 : -3) }, {
-      x: vw(i % 2 ? -2 : 3), ease: 'none', invalidateOnRefresh: true,
-      scrollTrigger: { trigger: '.hire', start: 'top bottom', end: 'bottom top', scrub: true },
+      x: vw(i % 2 ? -2 : 3), ease: 'none',
+      scrollTrigger: { trigger: '.hire', start: 'top bottom', end: 'bottom top', scrub: true, invalidateOnRefresh: true },
     });
   });
   // a soft air sound as each screenshot opens
   $$('[data-shot]').forEach((fig) => ScrollTrigger.create({ trigger: fig, start: 'top 88%', once: true, onEnter: () => sound.whoosh() }));
 }
+
+// skip link: Lenis handles the jump, so move focus by hand to the section it lands on
+$('.skip')?.addEventListener('click', () => requestAnimationFrame(() => $('#about').focus({ preventScroll: true })));
+
+// copy the address for people without a mail client set up
+$$('[data-copy]').forEach((btn) => btn.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(btn.dataset.copy);
+    btn.textContent = 'Copied';
+  } catch {
+    btn.textContent = btn.dataset.copy;
+  }
+  setTimeout(() => { btn.textContent = 'Copy email'; }, 1800);
+}));

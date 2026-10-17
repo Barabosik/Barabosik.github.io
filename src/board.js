@@ -32,16 +32,26 @@ const BASE = [V(0, 0), V(0.34, 0), V(0.34, 0.06), V(0.3, 0.09), V(0.3, 0.13), V(
 const lathe = (pts) => new THREE.LatheGeometry([...BASE, ...pts], 48).toNonIndexed();
 
 function knightGeometry() {
+  // Staunton profile facing +x: chest, throat, jaw, muzzle, forehead, ear, then the mane down the back
   const s = new THREE.Shape();
-  const head = [[-0.2, 0], [0.17, 0], [0.15, 0.12], [0.08, 0.26], [0.22, 0.3], [0.33, 0.36], [0.34, 0.44],
-    [0.26, 0.5], [0.14, 0.58], [0.13, 0.68], [0.06, 0.62], [-0.04, 0.64], [-0.16, 0.56], [-0.23, 0.4], [-0.24, 0.2]];
-  s.moveTo(...head[0]);
-  head.slice(1).forEach((p) => s.lineTo(...p));
-  s.closePath();
+  s.moveTo(-0.19, 0);
+  s.lineTo(0.17, 0);
+  s.quadraticCurveTo(0.2, 0.1, 0.11, 0.2);
+  s.quadraticCurveTo(0.06, 0.25, 0.14, 0.29);
+  s.quadraticCurveTo(0.27, 0.3, 0.33, 0.34);
+  s.quadraticCurveTo(0.38, 0.38, 0.35, 0.43);
+  s.quadraticCurveTo(0.31, 0.48, 0.22, 0.52);
+  s.quadraticCurveTo(0.15, 0.56, 0.13, 0.63);
+  s.lineTo(0.12, 0.74);
+  s.quadraticCurveTo(0.06, 0.7, 0.03, 0.64);
+  s.quadraticCurveTo(-0.1, 0.63, -0.17, 0.52);
+  s.quadraticCurveTo(-0.25, 0.4, -0.24, 0.24);
+  s.quadraticCurveTo(-0.23, 0.1, -0.19, 0);
   const g = new THREE.ExtrudeGeometry(s, {
-    depth: 0.1, bevelEnabled: true, bevelThickness: 0.07, bevelSize: 0.045, bevelSegments: 6, curveSegments: 6,
+    depth: 0.13, bevelEnabled: true, bevelThickness: 0.06, bevelSize: 0.05, bevelSegments: 8, curveSegments: 14,
   });
-  g.translate(0, 0.25, -0.05);
+  g.translate(0, 0.25, -0.065);
+  g.computeVertexNormals();
   const base = lathe([V(0.2, 0.2), V(0.19, 0.27), V(0, 0.28)]);
   return mergeGeometries([base, g.index ? g.toNonIndexed() : g]);
 }
@@ -75,11 +85,11 @@ function pieceGeometries() {
 const FRAMES = {
   hero: { az: -0.62, el: 0.56, r: 16.5, look: [0, 0, 0.2] },
   game: { az: -0.18, el: 0.92, r: 14.4, look: [0, 0, 0.3] },
-  mate: { az: 0.22, el: 0.78, r: 11.2, look: [0.4, 0, -1.6] },
+  mate: { az: 0.36, el: 0.6, r: 8.6, look: [0.5, 0.2, -2.7] },
 };
 const SHIFT = {
   wide: { hero: [0.28, 0.24], game: [0.25, 0.02] },
-  tall: { hero: [0, 0.3], game: [0, 0.17] },
+  tall: { hero: [0, 0.3], game: [0, 0.1] },
 };
 
 export function createBoard(canvas, { reducedMotion = false } = {}) {
@@ -157,6 +167,18 @@ export function createBoard(canvas, { reducedMotion = false } = {}) {
     board.add(mk);
     return mk;
   });
+
+  // the last move, Rd8#, is signed on the board: a jade stroke runs up the d-file behind the rook
+  const [lx, lz0] = squareXZ('d1');
+  const [, lz1] = squareXZ('d8');
+  const mateLine = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.07, 1).translate(0, 0.5, 0),
+    new THREE.MeshBasicMaterial({ color: COLORS.accent, transparent: true, opacity: 0.8, depthWrite: false }),
+  );
+  mateLine.rotation.x = -Math.PI / 2;
+  mateLine.position.set(lx, 0.02, lz0);
+  mateLine.scale.y = 0.0001;
+  board.add(mateLine);
 
   const geos = pieceGeometries();
   const mats = {
@@ -241,6 +263,9 @@ export function createBoard(canvas, { reducedMotion = false } = {}) {
     marks[0].position.set(fx, 0.012, fz);
     marks[1].position.set(tx, 0.012, tz);
     markMat.opacity = ply > 0.02 ? 0.32 : 0;
+    const draw = easeInOut(clamp01(ply - (PLIES.length - 1)));
+    mateLine.scale.y = Math.max(0.0001, draw * (lz0 - lz1));
+    mateLine.visible = draw > 0.001;
     // checkmate: the jade rim light swells as the king falls
     rim.intensity = 1.6 + 2.4 * easeOut(clamp01((ply - 32.3) / 0.7));
   }
@@ -259,7 +284,7 @@ export function createBoard(canvas, { reducedMotion = false } = {}) {
     // the game view shows the whole board, the mate close-up crops in)
     const tanH = Math.tan((camera.fov * Math.PI) / 360) * camera.aspect;
     const fitR = 4.7 / tanH;
-    const r = Math.max(lerp(r0, C.r, mate), fitR * lerp(lerp(0.8, 0.94, h), 0.74, mate));
+    const r = Math.max(lerp(r0, C.r, mate), fitR * lerp(lerp(0.8, 0.88, h), 0.7, mate));
     const look = [0, 1, 2].map((i) => lerp(lerp(A.look[i], B.look[i], h), C.look[i], mate));
     camera.position.set(
       look[0] + r * Math.cos(el) * Math.sin(az),
@@ -346,6 +371,15 @@ export function createBoard(canvas, { reducedMotion = false } = {}) {
         state.hover = Math.abs(hit.x) < 4.4 && Math.abs(hit.z) < 4.4 ? { x: hit.x, z: hit.z } : null;
       }
     }
+    // name of the square under the pointer, for the cursor label
+    state.square = null;
+    if (state.hover) {
+      const f = Math.round(state.hover.x + 3.5), r = Math.round(3.5 - state.hover.z);
+      if (f >= 0 && f < 8 && r >= 0 && r < 8) {
+        const p = state.hoverPiece;
+        state.square = (p && p.type !== 'p' ? p.type.toUpperCase() : '') + 'abcdefgh'[f] + (r + 1);
+      }
+    }
     placePieces(state.ply, dt);
     frame();
     renderer.render(scene, camera);
@@ -362,6 +396,7 @@ export function createBoard(canvas, { reducedMotion = false } = {}) {
     get intro() { return state.intro; },
     get ply() { return state.ply; },
     get hovering() { return !!state.hoverPiece; },
+    get square() { return state.square; },
     setHero(v) { state.heroT = clamp01(v); if (reducedMotion) state.hero = state.heroT; },
     setGame(v) {
       state.gameT = clamp01(v);

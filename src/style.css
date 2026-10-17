@@ -1,3 +1,7 @@
+/* Big Shoulders and Public Sans (SIL OFL), variable, latin subset, self-hosted */
+@font-face { font-family: 'Big Shoulders'; font-style: normal; font-weight: 700 800; font-display: swap; src: url(/fonts/BigShoulders.woff2) format('woff2'); }
+@font-face { font-family: 'Public Sans'; font-style: normal; font-weight: 400 700; font-display: swap; src: url(/fonts/PublicSans.woff2) format('woff2'); }
+
 :root {
   --bg: #161c1a;
   --surface: #1f2725;
@@ -47,6 +51,10 @@ img { display: block; max-width: 100%; height: auto; }
 a { color: inherit; }
 ::selection { background: var(--accent); color: var(--accent-ink); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+/* on the jade and bone fields the jade ring vanishes: draw it in the dark ink instead */
+.contact :focus-visible, .foot :focus-visible, .hire :focus-visible,
+.top.on-light :focus-visible, .top.on-accent :focus-visible { outline-color: var(--bg); }
+#about:focus { outline: none; }
 input, textarea { caret-color: var(--accent); }
 
 .visually-hidden {
@@ -107,8 +115,8 @@ main, .foot { position: relative; z-index: 1; }
 .top-right { display: flex; align-items: center; gap: clamp(20px, 3vw, 44px); }
 .top nav { display: flex; gap: clamp(16px, 2.4vw, 36px); }
 .sound {
-  pointer-events: auto; display: inline-flex; align-items: center; gap: 10px;
-  background: none; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer;
+  pointer-events: auto; margin-block: -10px; display: inline-flex; align-items: center; gap: 10px;
+  background: none; border: 0; padding: 10px 0; color: inherit; font: inherit; cursor: pointer;
 }
 .sound .bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; }
 .sound .bars i { width: 2px; height: 3px; background: currentColor; transition: height 200ms ease; }
@@ -165,7 +173,7 @@ main, .foot { position: relative; z-index: 1; }
 
 /* ---------- the game ---------- */
 .game { height: 500vh; }
-.game-pin { position: sticky; top: 0; height: 100svh; display: flex; align-items: center; padding: 0 var(--margin); overflow: hidden; }
+.game-pin { position: sticky; isolation: isolate; top: 0; height: 100svh; display: flex; align-items: center; padding: 0 var(--margin); overflow: hidden; }
 .readout { width: min(34vw, 500px); display: grid; gap: 22px; }
 .move {
   font-family: var(--display); font-weight: 800; font-size: var(--step-head);
@@ -175,10 +183,35 @@ main, .foot { position: relative; z-index: 1; }
 .note { font-size: var(--step-lead); line-height: 1.35; max-width: 26ch; min-height: 4.05em; }
 .movelist { font-size: var(--step-small); line-height: 1.7; color: var(--muted); font-variant-numeric: tabular-nums; max-width: 44ch; }
 .movelist span { transition: color 200ms ease, opacity 200ms ease; }
-.movelist .ahead { opacity: 0.45; }
+.movelist .ahead { color: #7f857f; }
 .movelist .on { color: var(--ink); font-weight: 600; opacity: 1; }
 .caption { font-size: var(--step-small); color: var(--muted); max-width: 40ch; }
 .caption a { color: var(--ink); text-underline-offset: 0.25em; }
+.skip-game {
+  justify-self: start; font-size: var(--step-small); color: var(--muted);
+  text-underline-offset: 0.25em; padding-block: 8px; transition: color 200ms ease;
+}
+.skip-game:hover { color: var(--ink); }
+/* a hairline on the right edge fills as the game plays */
+.game-progress { position: absolute; right: var(--margin); top: 50%; translate: 0 -50%; width: 2px; height: 32vh; background: color-mix(in oklab, var(--ink) 14%, transparent); }
+.game-progress i { display: block; width: 100%; height: 100%; background: var(--accent); transform-origin: top; transform: scaleY(0); }
+.cursor {
+  position: fixed; left: 0; top: 0; z-index: 25; pointer-events: none;
+  width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%;
+  border: 1px solid var(--accent); opacity: 0; scale: 0.6;
+  transition: opacity 200ms ease, scale 260ms var(--ease-out);
+}
+.cursor span {
+  position: absolute; left: 42px; top: 50%; translate: 0 -50%;
+  font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em; color: var(--accent);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.cursor.is-on { opacity: 1; scale: 1; }
+@media (hover: none), (pointer: coarse) { .cursor { display: none; } }
+.copy {
+  font: inherit; color: inherit; background: none; border: 0; padding: 8px 0; margin-left: 12px;
+  text-decoration: underline; text-underline-offset: 0.25em; cursor: pointer;
+}
 
 .no-webgl .stage { display: none; }
 .no-webgl .game { height: auto; }
@@ -187,6 +220,12 @@ main, .foot { position: relative; z-index: 1; }
 /* ---------- about ---------- */
 .about, .work, .experience, .foot { background: var(--bg); }
 .about { padding: var(--section) var(--margin) calc(var(--section) * 0.5); }
+/* the board does not get sliced by a hard edge: the page rises out of it */
+.about {
+  position: relative;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 min(28vh, 260px));
+  mask-image: linear-gradient(to bottom, transparent, #000 min(28vh, 260px));
+}
 .about-row { display: grid; grid-template-columns: 34% 1fr; align-items: start; }
 .facts { display: grid; gap: 20px; max-width: 220px; font-size: var(--step-small); }
 .facts dt { color: var(--muted); }
@@ -214,7 +253,7 @@ main, .foot { position: relative; z-index: 1; }
 .shot img { width: 100%; height: auto; }
 .email { overflow: hidden; }
 
-.project-chess .project-text { grid-column: 1 / span 4; grid-row: 1 / span 2; position: sticky; top: 110px; }
+.project-chess .project-text { grid-column: 1 / span 4; grid-row: 1 / span 2; position: sticky; top: 110px; align-self: start; }
 .project-chess .shot-main { grid-column: 6 / -1; grid-row: 1; }
 .project-chess .shot-side { grid-column: 6 / -1; grid-row: 2; margin-top: var(--gap); }
 
@@ -231,12 +270,12 @@ main, .foot { position: relative; z-index: 1; }
 .hire-title { font-size: var(--step-lead); font-weight: 600; margin-bottom: 40px; }
 .hire-list li {
   font-family: var(--display); font-weight: 800; text-transform: uppercase;
-  font-size: var(--step-head); line-height: 0.98; letter-spacing: -0.005em;
+  font-size: var(--step-head); line-height: 1.04; letter-spacing: -0.005em;
 }
 .hire-list li:nth-child(even) { padding-left: 8vw; }
 .hire-list li > span { display: inline-block; }
 .hire-list li { transition: opacity 240ms ease; }
-.hire-list:hover li { opacity: 0.4; }
+.hire-list:hover li { opacity: 0.55; }
 .hire-list li:hover { opacity: 1; }
 .hire { overflow: hidden; }
 
@@ -280,7 +319,7 @@ main, .foot { position: relative; z-index: 1; }
 .email:hover .email-text::after, .email:focus-visible .email-text::after { transform: scaleX(1); }
 .contact-foot { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: var(--step-small); }
 .socials { display: flex; gap: 24px; }
-.socials a { text-underline-offset: 0.25em; }
+.socials a { text-underline-offset: 0.25em; padding-block: 10px; }
 
 /* ---------- footer ---------- */
 .foot { padding: 120px var(--margin) 0; overflow: hidden; }
@@ -289,7 +328,7 @@ main, .foot { position: relative; z-index: 1; }
 .foot-places a { color: var(--accent); text-decoration: none; }
 .foot-places a:hover { text-decoration: underline; text-underline-offset: 0.2em; text-decoration-thickness: 2px; }
 .foot-links { grid-column: 8 / -1; display: grid; gap: 10px; align-content: start; font-size: var(--step-small); }
-.foot-links a { text-decoration: none; }
+.foot-links a { text-decoration: none; padding-block: 6px; }
 .foot-links a:hover { text-decoration: underline; text-underline-offset: 0.25em; }
 .legal { margin-top: 96px; font-size: var(--step-small); color: var(--muted); }
 .foot-name {
@@ -317,6 +356,7 @@ main, .foot { position: relative; z-index: 1; }
 
 /* ---------- phone ---------- */
 @media (max-width: 760px) {
+  .game-progress { display: none; }
   .top nav { display: none; }
   .hero { grid-template-rows: auto auto 1fr; padding-top: 96px; }
   .hero-title { font-size: 25vw; }

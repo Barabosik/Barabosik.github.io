@@ -38,12 +38,12 @@ export const PLIES = [
 
 // What the readout says while the game is between these plies.
 export const NOTES = [
-  { from: 0, text: 'Paris, 1858. Paul Morphy plays the Duke of Brunswick and Count Isouard, together, in a box at the opera.' },
+  { from: 0, text: 'Paul Morphy plays the Duke of Brunswick and Count Isouard, together, in a box at the opera.' },
   { from: 6, text: 'White develops a piece with every move. Black spends moves holding on to a pawn.' },
-  { from: 18, text: 'Nxb5. Morphy gives up a knight to tear the queenside open.' },
-  { from: 24, text: 'Rxd7. Then a rook, to keep the pin on the d-file.' },
-  { from: 30, text: 'Qb8+. Then the queen.' },
-  { from: 32, text: 'Rd8, checkmate. A bishop and one rook finish it in seventeen moves.' },
+  { from: 18, text: 'Morphy gives up a knight to tear the queenside open.' },
+  { from: 24, text: 'Then a rook, to keep the pin on the d-file.' },
+  { from: 30, text: 'Then the queen.' },
+  { from: 32, text: 'Checkmate. A bishop and one rook finish it in seventeen moves.' },
 ];
 
 const BACK = ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'];
