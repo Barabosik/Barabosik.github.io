@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { MeshSurfaceSampler } from 'three/addons/math/MeshSurfaceSampler.js';
 import { buildTracks, squareXZ, PLIES } from './opera.js';
 
 const COLORS = {
@@ -198,6 +199,118 @@ export function createBoard(canvas, { reducedMotion = false } = {}) {
     return piece;
   });
   const blackKing = pieces.find((p) => p.type === 'k' && !p.white);
+  const small = window.matchMedia('(max-width: 760px), (pointer: coarse)').matches;
+  const pr = () => renderer.getPixelRatio();
+
+  // ---------- coordinates: a-h and 1-8 set in mono on the rim of the board ----------
+  const coordMat = [];
+  function coordLabel(text, x, z) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 64;
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.6, depthWrite: false, toneMapped: false });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.26), mat);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.set(x, 0.003, z);
+    board.add(mesh);
+    const draw = () => {
+      const g = c.getContext('2d');
+      g.clearRect(0, 0, 64, 64);
+      g.fillStyle = '#e3e2da';
+      g.font = '500 40px "Geist Mono", ui-monospace, monospace';
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      g.fillText(text, 32, 34);
+      tex.needsUpdate = true;
+    };
+    draw();
+    coordMat.push(draw);
+  }
+  'abcdefgh'.split('').forEach((f, i) => coordLabel(f, i - 3.5, 4.17));
+  for (let r = 0; r < 8; r++) coordLabel(String(r + 1), -4.17, 3.5 - r);
+  document.fonts?.load('500 40px "Geist Mono"').then(() => coordMat.forEach((d) => d()));
+
+  // ---------- particles ----------
+  const pointVert = `
+    attribute vec4 aRand;
+    uniform float uK, uSize, uPr, uTime, uDust;
+    varying float vAlpha;
+    void main() {
+      vec3 p = position;
+      float k = 0.0;
+      if (uDust > 0.5) {
+        // dust: drifts up through the key light and wraps around
+        p.y = mod(position.y + uTime * (0.04 + aRand.w * 0.05), 4.2) + 0.2;
+        p.x += sin(uTime * 0.13 + aRand.x * 6.28) * 0.35;
+        p.z += cos(uTime * 0.11 + aRand.y * 6.28) * 0.35;
+        vAlpha = 0.5 * smoothstep(0.2, 0.9, p.y) * (1.0 - smoothstep(3.2, 4.4, p.y)) * (0.5 + 0.5 * aRand.z);
+      } else {
+        // a captured piece comes apart: each grain leaves on its own delay, lifts and curls away
+        k = clamp((uK - aRand.w * 0.35) / 0.65, 0.0, 1.0);
+        float ease = 1.0 - pow(1.0 - k, 3.0);
+        p += normalize(aRand.xyz - 0.5) * ease * 1.25;
+        p.y += ease * ease * 2.2;
+        float a = ease * 4.0 + aRand.w * 6.28;
+        p.xz += vec2(cos(a), sin(a)) * ease * 0.22;
+        vAlpha = (1.0 - k * k) * 0.85 * step(0.001, uK);
+      }
+      vec4 mv = modelViewMatrix * vec4(p, 1.0);
+      gl_Position = projectionMatrix * mv;
+      gl_PointSize = uSize * uPr * (1.0 - 0.4 * k) * (10.0 / -mv.z);
+    }`;
+  const pointFrag = `
+    uniform vec3 uColor;
+    varying float vAlpha;
+    void main() {
+      float d = length(gl_PointCoord - 0.5);
+      float a = smoothstep(0.5, 0.0, d) * vAlpha;
+      if (a < 0.01) discard;
+      gl_FragColor = vec4(uColor, a);
+    }`;
+  const pointsMaterial = (color, size, dust = 0, additive = false) => new THREE.ShaderMaterial({
+    vertexShader: pointVert, fragmentShader: pointFrag, transparent: true, depthWrite: false,
+    blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
+    uniforms: { uK: { value: 0 }, uSize: { value: size }, uPr: { value: pr() }, uTime: { value: 0 }, uDust: { value: dust }, uColor: { value: new THREE.Color(color) } },
+  });
+
+  // dust in the light
+  const dustN = small ? 140 : 420;
+  const dustGeo = new THREE.BufferGeometry();
+  const dp = new Float32Array(dustN * 3), dr = new Float32Array(dustN * 4);
+  for (let i = 0; i < dustN; i++) {
+    dp.set([(Math.random() - 0.5) * 12, Math.random() * 4.2, (Math.random() - 0.5) * 12], i * 3);
+    dr.set([Math.random(), Math.random(), Math.random(), Math.random()], i * 4);
+  }
+  dustGeo.setAttribute('position', new THREE.BufferAttribute(dp, 3));
+  dustGeo.setAttribute('aRand', new THREE.BufferAttribute(dr, 4));
+  const dustMat = pointsMaterial(0xdfe8e4, 2.4, 1, true);
+  const dust = new THREE.Points(dustGeo, dustMat);
+  dust.frustumCulled = false;
+  scene.add(dust);
+
+  // every piece that will be taken gets a cloud sampled from its own surface
+  const grains = small ? 700 : 1600;
+  for (const p of pieces) {
+    if (p.capturedAt === null) continue;
+    const sampler = new MeshSurfaceSampler(new THREE.Mesh(geos[p.type])).build();
+    const pos = new Float32Array(grains * 3), rnd = new Float32Array(grains * 4);
+    const v = new THREE.Vector3();
+    for (let i = 0; i < grains; i++) {
+      sampler.sample(v);
+      pos.set([v.x, v.y, v.z], i * 3);
+      rnd.set([Math.random(), Math.random(), Math.random(), Math.random()], i * 4);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setAttribute('aRand', new THREE.BufferAttribute(rnd, 4));
+    const mat = pointsMaterial(p.white ? 0xe3e2da : 0x9fc7b8, 5.2, 0, true);
+    const cloud = new THREE.Points(g, mat);
+    cloud.visible = false;
+    cloud.frustumCulled = false;
+    board.add(cloud);
+    p.cloud = cloud;
+  }
 
   // ---------- state ----------
   // scroll writes targets (heroT, gameT, plyT); each frame eases the drawn values toward them,
@@ -230,10 +343,18 @@ export function createBoard(canvas, { reducedMotion = false } = {}) {
         }
       }
       let s = 1;
-      if (p.capturedAt !== null && ply > p.capturedAt + 0.55) {
-        const k = clamp01((ply - p.capturedAt - 0.55) / 0.45);
-        y -= 1.5 * easeOut(k);
-        s = 1 - 0.25 * k;
+      if (p.cloud) {
+        const k = clamp01((ply - p.capturedAt - 0.5) / 0.9);
+        p.cloud.visible = k > 0 && k < 1;
+        if (p.cloud.visible) {
+          p.cloud.position.set(x, 0, z);
+          p.cloud.rotation.y = p.mesh.rotation.y;
+          p.cloud.material.uniforms.uK.value = k;
+          p.cloud.material.uniforms.uPr.value = pr();
+        }
+        // the solid piece gives way to its grains over the first third of the dissolve
+        s = 1 - easeOut(clamp01(k / 0.32));
+        if (s < 0.02) y = -5;
       }
       if (p === blackKing) tilt = easeOut(clamp01((ply - 32.5) / 0.5)) * 1.38;
       // intro: pieces rise out of the board, back ranks first
@@ -380,6 +501,8 @@ export function createBoard(canvas, { reducedMotion = false } = {}) {
         state.square = (p && p.type !== 'p' ? p.type.toUpperCase() : '') + 'abcdefgh'[f] + (r + 1);
       }
     }
+    dustMat.uniforms.uTime.value = time;
+    dustMat.uniforms.uPr.value = pr();
     placePieces(state.ply, dt);
     frame();
     renderer.render(scene, camera);

@@ -1,10 +1,11 @@
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { SplitText } from 'gsap/SplitText';
 import Lenis from 'lenis';
 import { PLIES, NOTES, moveLabel, buildTracks } from './opera.js';
 import { sound } from './sound.js';
 
-gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(ScrollTrigger, SplitText);
 
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const $ = (s, el = document) => el.querySelector(s);
@@ -27,6 +28,15 @@ const moveSpans = PLIES.map((p, i) => {
   s.textContent = p.san;
   movelist.append(s, ' ');
   return s;
+});
+
+// the move ruler: one tick per move of the Opera Game
+const ruler = $('.game-ruler');
+const ticks = Array.from({ length: Math.ceil(PLIES.length / 2) }, (_, i) => {
+  const li = document.createElement('li');
+  li.dataset.n = String(i + 1);
+  ruler?.append(li);
+  return li;
 });
 
 const moveText = $('.move-text');
@@ -74,6 +84,8 @@ function updateReadout(ply) {
   shownIdx = idx;
   decode(moveText, idx < 0 ? 'Paris, 1858' : moveLabel(idx));
   if (!reduced) gsap.fromTo(moveText, { yPercent: 30, opacity: 0.2 }, { yPercent: 0, opacity: 1, duration: 0.3, ease: 'power3.out', overwrite: 'auto' });
+  const moveNo = idx < 0 ? -1 : Math.floor(idx / 2);
+  ticks.forEach((t, i) => { t.classList.toggle('on', i === moveNo); t.classList.toggle('done', i < moveNo); });
   moveSpans.forEach((s, i) => {
     s.classList.toggle('on', i === idx);
     s.classList.toggle('ahead', i > idx);
@@ -95,7 +107,6 @@ function updateReadout(ply) {
 }
 updateReadout(0);
 
-const progress = gsap.quickSetter('.game-progress i', 'scaleY');
 
 // ---------- WebGL board (three.js arrives as its own chunk, after the text has painted) ----------
 const canvas = $('.stage');
@@ -128,7 +139,7 @@ async function startBoard() {
   });
   ScrollTrigger.create({
     trigger: '.game', start: 'top top', end: 'bottom bottom', scrub: true,
-    onUpdate: (st) => { board.setGame(st.progress); progress(st.progress); },
+    onUpdate: (st) => board.setGame(st.progress),
     onRefresh: (st) => { board.setGame(st.progress); board.settle(); },
   });
   // as the page rises over the final position, the board dims away instead of being cut off
@@ -222,6 +233,8 @@ $$('[data-words]').forEach((p) => {
     const s = document.createElement('span');
     s.className = 'w';
     s.textContent = w;
+    // "prove code wrong." is the thesis: it gets the serif voice
+    if (i >= 6 && i <= 8 && p.classList.contains('about-text')) s.classList.add('accent');
     p.append(s, i < words.length - 1 ? ' ' : '');
   });
   if (!reduced) gsap.fromTo(p.querySelectorAll('.w'), { opacity: 0.22 }, {
@@ -246,6 +259,18 @@ if (!reduced) {
     gsap.fromTo(img, { scale: 1.08 }, { scale: 1, duration: 1.6, ease: 'expo.out', scrollTrigger: once(fig, 'top 88%') });
   });
   gsap.from('.hire-title', { y: 20, opacity: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: once('.hire') });
+  // headings come into focus letter by letter (blur only where the GPU can afford it)
+  const fine = window.matchMedia('(pointer: fine)').matches;
+  document.fonts.ready.then(() => {
+    $$('.project-title').forEach((h) => {
+      const split = SplitText.create(h, { type: 'words,chars', wordsClass: 'wd', charsClass: 'ch' });
+      gsap.from(split.chars, {
+        opacity: 0, yPercent: 18, filter: fine ? 'blur(14px)' : 'none',
+        duration: 1.1, ease: 'power3.out', stagger: 0.035, scrollTrigger: once(h, 'top 85%'),
+        onComplete: () => gsap.set(split.chars, { clearProps: 'filter' }),
+      });
+    });
+  });
   gsap.from('.hire-list li > span', {
     xPercent: -6, opacity: 0, duration: 1, ease: 'expo.out', stagger: 0.09, scrollTrigger: once('.hire-list'),
   });

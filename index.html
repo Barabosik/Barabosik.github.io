@@ -18,6 +18,7 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preload" href="/fonts/BigShoulders.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/fonts/PublicSans.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/GeistMono.woff2" as="font" type="font/woff2" crossorigin>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"Person","name":"Nikita Andreiev","jobTitle":"Software engineer and security researcher","url":"https://barabosik.github.io/","address":{"@type":"PostalAddress","addressLocality":"Saarbrücken","addressCountry":"DE"},"sameAs":["https://github.com/Barabosik","https://www.linkedin.com/in/nikita-andreiev"]}</script>
   <script>document.documentElement.classList.add('js')</script>
   <link rel="stylesheet" href="/src/style.css">
@@ -68,7 +69,7 @@
           <p class="caption">Scroll to play the game. <a href="https://barabosik.github.io/chess-analyzer/">My chess analyzer</a> reviews games like this one, move by move, in your browser.</p>
           <a class="skip-game" href="#about">Skip the game</a>
         </div>
-        <div class="game-progress" aria-hidden="true"><i></i></div>
+        <ol class="game-ruler" aria-hidden="true"></ol>
       </div>
     </section>
 
@@ -173,7 +174,7 @@
     </section>
 
     <section id="contact" class="contact" aria-labelledby="contact-title">
-      <h2 id="contact-title" class="contact-lead">Security, evaluation or backend work? Write to me.</h2>
+      <h2 id="contact-title" class="contact-lead">Security, evaluation or backend work? <em class="accent">Write to me.</em></h2>
       <a class="email" href="mailto:thezloynikitan@gmail.com?subject=Hello%20Nikita"><span class="email-text">thezloynikitan<span class="at">@gmail.com</span></span></a>
       <div class="contact-foot">
         <p>Saarbrücken, Germany. Open to remote. <button class="copy" type="button" data-copy="thezloynikitan@gmail.com">Copy email</button></p>
