@@ -166,6 +166,12 @@ async function startBoard() {
   boardWarmed();
   if (!board) {
     document.documentElement.classList.add('no-webgl');
+    // say why the board is missing, so the visitor knows what they could switch on
+    const notice = $('.notice-webgl');
+    if (notice) {
+      notice.hidden = false;
+      notice.querySelector('.notice-close')?.addEventListener('click', () => { notice.hidden = true; });
+    }
     moveText.textContent = '17. Rd8#';
     note.textContent = NOTES[NOTES.length - 1].text;
     moveSpans.forEach((s) => s.classList.remove('ahead'));

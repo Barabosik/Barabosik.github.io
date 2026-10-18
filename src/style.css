@@ -493,3 +493,20 @@ html.is-grabbing, html.is-grabbing * { cursor: grabbing !important; user-select:
 .move-text { transition: color 450ms ease, text-shadow 450ms ease; }
 .move[data-kind="great"] .move-text { color: #5c8bb0; text-shadow: 0 0 28px rgba(92, 139, 176, 0.35); }
 .move[data-kind="brilliant"] .move-text { color: #26c2a3; text-shadow: 0 0 32px rgba(38, 194, 163, 0.4); }
+
+/* shown when the page can't run as built: JavaScript off, or no WebGL for the board */
+.notice {
+  position: fixed; left: 50%; bottom: max(20px, env(safe-area-inset-bottom)); z-index: 45; translate: -50% 0;
+  display: flex; align-items: center; gap: 12px; width: max-content; max-width: calc(100vw - 32px);
+  padding: 12px 14px 12px 16px; border-radius: 14px;
+  background: var(--ink); color: var(--bg); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  font-size: 0.9375rem; line-height: 1.4;
+}
+.notice[hidden] { display: none; }
+.notice strong { font-weight: 700; }
+.notice-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 30%, transparent); }
+.notice-close {
+  flex: none; width: 28px; height: 28px; margin-left: 4px; border: 0; border-radius: 8px;
+  background: transparent; color: inherit; font-size: 1.25rem; line-height: 1; cursor: pointer;
+}
+.notice-close:hover { background: color-mix(in oklab, var(--bg) 10%, transparent); }
