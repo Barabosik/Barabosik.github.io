@@ -268,20 +268,11 @@ window.addEventListener('load', () => { fitAll(); ScrollTrigger.refresh(); });
 document.fonts.addEventListener('loadingdone', fitAll);
 window.addEventListener('resize', fitAll);
 
-// header: transparent over the hero; turns frosted the moment the big name slides under it,
-// hides while reading down, returns on the way up
+// header: transparent over the hero; turns solid the moment the big name slides under it, and stays put
 const top = $('.top');
-let lastY = 0;
 ScrollTrigger.create({
   trigger: '.hero-title', start: () => `top ${top.offsetHeight}px`, end: 'max',
-  onUpdate: (st) => {
-    const y = st.scroll();
-    top.classList.add('is-solid');
-    top.classList.toggle('is-hidden', y > lastY + 4 && y > window.innerHeight);
-    if (y < lastY - 4) top.classList.remove('is-hidden');
-    lastY = y;
-  },
-  onLeaveBack: () => top.classList.remove('is-solid', 'is-hidden'),
+  toggleClass: { targets: top, className: 'is-solid' },
 });
 
 // header ink flips over the light fields

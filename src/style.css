@@ -106,13 +106,11 @@ main, .foot { position: relative; z-index: 1; }
   pointer-events: none;
 }
 .top a { pointer-events: auto; text-decoration: none; }
-/* past the hero the header becomes a frosted layer: content stays visible as it scrolls beneath */
 /* past the hero the header becomes a solid band (a live blur re-renders under scroll and flickers) */
 .top.is-solid { background: var(--bg); box-shadow: 0 1px 0 color-mix(in oklab, var(--ink) 7%, transparent); }
 .top.is-solid.on-light { background: var(--ink); color: var(--bg); box-shadow: none; }
 .top.on-light, .top.on-accent { color: var(--accent-ink); }
 .top.is-solid.on-accent { background: var(--accent); box-shadow: none; }
-.top.is-hidden { transform: translateY(-100%); }
 .top-right { display: flex; align-items: center; gap: clamp(20px, 3vw, 44px); }
 .top nav { display: flex; gap: clamp(16px, 2.4vw, 36px); }
 .sound {

@@ -83,7 +83,7 @@ function pieceGeometries() {
 
 // ---------- capture: the piece burns away from the crown down, with a jade edge ----------
 // dissolveD() gives every point on a piece the moment the burn reaches it (0 first, 1 last): mostly height,
-// broken up by two octaves of noise. The mesh discards behind the edge; the embers leave from it.
+// with a little noise so the edge wavers instead of cutting a straight line. The mesh discards behind the edge; the embers leave from it.
 const NOISE = `
   float hash3(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
   float vnoise(vec3 x) {
@@ -94,8 +94,8 @@ const NOISE = `
   }
   float dissolveD(vec3 p) {
     float h = clamp(p.y / 1.15, 0.0, 1.0);
-    float n = 0.65 * vnoise(p * 7.0) + 0.35 * vnoise(p * 16.0);
-    return n * 0.55 + (1.0 - h) * 0.45;
+    float n = 0.8 * vnoise(p * 5.0) + 0.2 * vnoise(p * 12.0);
+    return n * 0.2 + (1.0 - h) * 0.8;
   }
 `;
 
@@ -108,9 +108,9 @@ function burnable(base, uT, depth = false) {
       '#include <clipping_planes_fragment>\nfloat dd = dissolveD(vPos) - uT;\nif (dd < 0.0) discard;');
     // ahead of the edge the surface scorches dark, so the jade line reads on bone and ebony alike
     if (!depth) f = f.replace('#include <color_fragment>',
-      '#include <color_fragment>\nfloat burnOn = step(0.0, uT);\ndiffuseColor.rgb *= mix(1.0, mix(0.06, 1.0, smoothstep(0.02, 0.16, dd)), burnOn);')
+      '#include <color_fragment>\nfloat burnOn = step(0.0, uT);\ndiffuseColor.rgb *= mix(1.0, mix(0.06, 1.0, smoothstep(0.01, 0.07, dd)), burnOn);')
       .replace('#include <emissivemap_fragment>',
-        '#include <emissivemap_fragment>\ntotalEmissiveRadiance += (vec3(0.85, 1.0, 0.93) * (1.0 - smoothstep(0.0, 0.012, dd)) * 5.0 + vec3(0.25, 0.85, 0.6) * (1.0 - smoothstep(0.0, 0.045, dd)) * 3.0) * burnOn;');
+        '#include <emissivemap_fragment>\ntotalEmissiveRadiance += (vec3(0.85, 1.0, 0.93) * (1.0 - smoothstep(0.0, 0.012, dd)) * 3.5 + vec3(0.25, 0.85, 0.6) * (1.0 - smoothstep(0.0, 0.035, dd)) * 2.0) * burnOn;');
     sh.fragmentShader = 'uniform float uT;\nvarying vec3 vPos;\n' + NOISE + f;
   };
   m.customProgramCacheKey = () => (depth ? 'burn-depth' : 'burn');
@@ -405,8 +405,8 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
         float e = 1.0 - pow(1.0 - k, 2.0);
         p.y += e * (0.45 + aRand.w * 0.55);
         float a = aRand.x * 6.28 + k * 2.5;
-        p.xz += vec2(cos(a), sin(a)) * e * 0.1 + (aRand.yz - 0.5) * e * 0.3;
-        vAlpha = step(0.001, k) * (1.0 - k) * (1.0 - k) * 1.3;
+        p.xz += vec2(cos(a), sin(a)) * e * 0.06 + (aRand.yz - 0.5) * e * 0.14;
+        vAlpha = step(0.001, k) * (1.0 - k) * (1.0 - k);
       }
       vec4 mv = modelViewMatrix * vec4(p, 1.0);
       gl_Position = projectionMatrix * mv;
@@ -444,7 +444,7 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
 
   await breathe();
   // every piece that will be taken gets a cloud sampled from its own surface
-  const grains = small ? 220 : 520;
+  const grains = small ? 120 : 280;
   for (const p of pieces) {
     if (p.capturedAt === null) continue;
     await breathe();
@@ -459,7 +459,7 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     g.setAttribute('aRand', new THREE.BufferAttribute(rnd, 4));
-    const mat = pointsMaterial(0xb8f0d8, 6.0, 0, true);
+    const mat = pointsMaterial(0xb8f0d8, 4.2, 0, true);
     mat.uniforms.uK = p.uT;
     const cloud = new THREE.Points(g, mat);
     cloud.visible = false;
@@ -582,7 +582,8 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
       }
       const s = 1;
       if (p.cloud) {
-        const k = Math.min(1.5, Math.max(0, (ply - p.capturedAt - 0.4) / 0.9));
+        // the taken piece burns away while the attacker is still in the air, so the square is clear when it lands
+        const k = Math.min(1.5, Math.max(0, (ply - p.capturedAt - 0.05) / 0.55));
         p.uT.value = k > 0 ? k * 1.1 - 0.02 : -1;
         p.cloud.visible = k > 0 && k < 1.5;
         if (p.cloud.visible) {
