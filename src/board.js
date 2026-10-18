@@ -120,7 +120,7 @@ function burnable(base, uT, depth = false) {
 // ---------- the game on the scroll ----------
 // every move takes one unit of scroll; an annotated move also gets a pause after it, so the board rests on
 // the position (and its ! or !! badge) for a while before the game goes on
-const HOLD = 1.6;
+const HOLD = 4.5;
 const SEGMENTS = PLIES.map((_, i) => 1 + (ANNOTATIONS[i] ? HOLD : 0));
 const SCROLL_UNITS = SEGMENTS.reduce((a, b) => a + b, 0);
 function plyAt(u) {
