@@ -451,9 +451,11 @@ html.is-grabbing, html.is-grabbing * { cursor: grabbing !important; user-select:
   .project-chess .project-text, .project-chess .shot-main, .project-chess .shot-side,
   .project-tether .project-text, .project-tether .shot-small { grid-column: 1 / -1; grid-row: auto; position: static; margin-top: 0; }
   .project-chess .shot-main { margin-top: 40px; }
-  .project-chess .shot-side { margin-top: var(--gap); }
+  .project-chess .shot-side, .project-tether .shot-small { display: none; }
+  .project-chess .shot-main { aspect-ratio: 4 / 5; }
+  .project-chess .shot-main img { height: 100%; object-fit: cover; object-position: 0 50%; }
+  .project + .project { margin-top: 112px; }
   .project-tether .project-text { margin-top: 40px; }
-  .project-tether .shot-small { margin-top: 40px; }
   .also { margin-left: 0; font-size: 1.1875rem; }
   .hire-list li:nth-child(even) { padding-left: 0; }
   .hire-list li { font-size: 12vw; line-height: 1; margin-bottom: 0.15em; }

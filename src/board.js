@@ -143,7 +143,7 @@ const FRAMES = {
 };
 const SHIFT = {
   wide: { hero: [0.28, 0.24], game: [0.25, 0.02] },
-  tall: { hero: [0, 0.3], game: [0, 0.1] },
+  tall: { hero: [0, 0.3], game: [0, 0.16] },
 };
 
 // building the board is split into short steps with a breath between them, so the page never freezes for long
@@ -582,8 +582,8 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
       }
       const s = 1;
       if (p.cloud) {
-        // the taken piece burns away while the attacker is still in the air, so the square is clear when it lands
-        const k = Math.min(1.5, Math.max(0, (ply - p.capturedAt - 0.05) / 0.55));
+        // the taken piece catches as the attacker passes halfway and is gone just as it lands
+        const k = Math.min(1.5, Math.max(0, (ply - p.capturedAt - 0.5) / 0.45));
         p.uT.value = k > 0 ? k * 1.1 - 0.02 : -1;
         p.cloud.visible = k > 0 && k < 1.5;
         if (p.cloud.visible) {
@@ -674,7 +674,10 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
     // the game view shows the whole board, the mate close-up crops in)
     const tanH = Math.tan((camera.fov * Math.PI) / 360) * camera.aspect;
     const fitR = 4.7 / tanH;
-    const r = Math.max(lerp(r0, C.r, mate), fitR * lerp(lerp(0.8, 0.88, h), 0.7, mate));
+    const r = Math.max(lerp(r0, C.r, mate), fitR * lerp(lerp(0.8, state.wide ? 0.88 : 1.02, h), 0.7, mate));
+    // the fog starts just behind the board wherever the camera sits, so a backed-off phone view stays crisp
+    scene.fog.near = r * 0.97;
+    scene.fog.far = r + 18;
     const look = [0, 1, 2].map((i) => lerp(lerp(A.look[i], B.look[i], h), C.look[i], mate));
     camera.position.set(
       look[0] + r * Math.cos(el) * Math.sin(az),

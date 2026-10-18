@@ -348,16 +348,29 @@ paintSound();
 soundBtn.addEventListener('click', () => { sound.set(!sound.on); paintSound(); });
 $$('a, button').forEach((el) => el.addEventListener('pointerenter', () => sound.tick()));
 
-// every click gets an answer: a tap you can hear, a ring you can see, a buzz you can feel
+// every click gets an answer: a tap you can hear, a ring you can see, a buzz you can feel.
+// On touch only a real tap answers; a finger that starts a scroll stays silent.
+let touchDown = null;
 window.addEventListener('pointerdown', (e) => {
   if (e.button !== 0) return;
+  if (e.pointerType === 'touch') touchDown = { x: e.clientX, y: e.clientY, t: e.timeStamp };
+  else answerClick(e);
+});
+window.addEventListener('pointerup', (e) => {
+  if (e.pointerType !== 'touch' || !touchDown) return;
+  const d = touchDown;
+  touchDown = null;
+  if (Math.hypot(e.clientX - d.x, e.clientY - d.y) < 10 && e.timeStamp - d.t < 400) answerClick(e);
+});
+window.addEventListener('pointercancel', () => { touchDown = null; });
+function answerClick(e) {
   const el = e.target;
   const onBoard = boardLive() && overBoard(el);
   fx?.burst(e.clientX, e.clientY, { dark: !!el.closest?.('.hire, .contact'), big: onBoard });
   if (el.closest?.('a, button, [data-cursor]')) sound.press();
   else sound.tap(onBoard ? 0.8 : 1);
   buzz(8);
-});
+}
 
 // the first deliberate click turns sound on, unless the visitor has muted it before
 window.addEventListener('click', (e) => {
@@ -502,8 +515,8 @@ if (cursor && fineHover && !reduced) {
   }
 }
 
-// project images open the project, and say so under the cursor
-[['.project-chess', 'Open'], ['.project-tether', 'Play']].forEach(([sel, word]) => {
+// project images open the project, and say so under the cursor (not on touch: a swipe could land as a tap)
+if (fineHover) [['.project-chess', 'Open'], ['.project-tether', 'Play']].forEach(([sel, word]) => {
   const href = $(`${sel} .button`)?.href;
   $$(`${sel} [data-shot]`).forEach((fig) => {
     fig.dataset.cursor = word;
@@ -512,7 +525,7 @@ if (cursor && fineHover && !reduced) {
 });
 
 // images bend a little with the speed of the scroll, and settle when it stops
-if (lenis && !reduced) {
+if (lenis && !reduced && fineHover) {
   const benders = $$('[data-shot] img').map((img) => gsap.quickTo(img, 'skewY', { duration: 0.6, ease: 'power3.out' }));
   lenis.on('scroll', ({ velocity }) => {
     const k = gsap.utils.clamp(-3.2, 3.2, velocity * 0.12);
@@ -664,20 +677,20 @@ async function playIntro() {
   gsap.set(h1, { x: dx, y: dy, scale: s, transformOrigin: `${cx - hr.left}px ${cy - hr.top}px` });
   gsap.set(chars, { transformOrigin: '50% 85%' });
   html.classList.add('intro-go');
-  const lean = dx > 0 ? -9 : 9;
+  const from = dx > 0 ? 'end' : 'start';      // the wave starts at the leading edge of the move
   // hold on black while the name rises and the board gets ready (never longer than 3.5 s)
   const t0 = performance.now();
   await Promise.race([boardWarm, new Promise((r) => setTimeout(r, 3500))]);
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
   const wait = Math.max(0.05, 1.15 - (performance.now() - t0) / 1000);
   gsap.timeline({ delay: wait })
-    .to(h1, { x: 0, y: 0, scale: 1, duration: 1.1, ease: 'expo.inOut' }, 0)
-    .to(chars, { skewX: lean, scaleX: 1.06, duration: 0.45, ease: 'power2.in', stagger: { each: 0.018, from: 'end' } }, 0.05)
-    .add(() => html.classList.add('title-free'), 0.1)      // the rise is over: let the leaning letters out of their masks
-    .add(() => { html.classList.add('intro-done'); introDone(); }, 0.5)
-    .fromTo(chars, { skewX: lean, scaleX: 1.07, scaleY: 0.9 }, {
-      skewX: 0, scaleX: 1, scaleY: 1, duration: 2.1, ease: 'elastic.out(1, 0.5)', stagger: 0.05, immediateRender: false,
-    }, 0.9)
+    // the name travels as one mass on a long, even curve; nothing bends or wobbles
+    .to(h1, { x: 0, y: 0, scale: 1, duration: 1.5, ease: 'expo.inOut' }, 0)
+    .add(() => html.classList.add('title-free'), 0.1)      // the rise is over: let the letters out of their masks
+    // a quiet wave runs through the letters on the way: each lifts a touch, then settles slowly into place
+    .to(chars, { yPercent: -5, duration: 0.6, ease: 'sine.inOut', stagger: { each: 0.025, from } }, 0.2)
+    .to(chars, { yPercent: 0, duration: 1.2, ease: 'power3.out', stagger: { each: 0.025, from } }, 0.8)
+    .add(() => { html.classList.add('intro-done'); introDone(); }, 0.7)
     .add(() => {
       lenis?.start();
       gsap.set(h1, { clearProps: 'transform' });
