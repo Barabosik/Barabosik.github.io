@@ -149,7 +149,7 @@ const SHIFT = {
 // building the board is split into short steps with a breath between them, so the page never freezes for long
 const breathe = () => new Promise((r) => setTimeout(r, 0));
 
-export async function createBoard(canvas, { reducedMotion = false, onLand = null, onTurn = null } = {}) {
+export async function createBoard(canvas, { reducedMotion = false, onLand = null, onTurn = null, onBadge = null } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -258,7 +258,7 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
     const y = far ? 1.05 : 1.5;
     sprite.position.set(x + (far ? 0.45 : 0.3), y, z + (far ? 0.5 : -0.1));
     board.add(sprite);
-    return { idx: Number(idx), sprite, y, color: new THREE.Color(st.color), landed: false };
+    return { idx: Number(idx), kind, sprite, y, color: new THREE.Color(st.color), landed: false };
   });
 
   const marks = [0, 1].map(() => {
@@ -646,7 +646,10 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
       if (k >= 0.72 && !b.landed) {
         b.landed = true;
         const [x, z] = squareXZ(PLIES[b.idx].moves[0][1]);
-        if (k < 1.2) waves.push({ x, z, t: time, k: b.color.equals(badges[badges.length - 1].color) ? 1.6 : 1.1 });
+        if (k < 1.2) {
+          waves.push({ x, z, t: time, k: b.color.equals(badges[badges.length - 1].color) ? 1.6 : 1.1 });
+          onBadge?.(b.kind);
+        }
       } else if (k < 0.5) b.landed = false;
     }
     const draw = easeInOut(clamp01(ply - (PLIES.length - 1)));

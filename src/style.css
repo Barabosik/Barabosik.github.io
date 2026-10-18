@@ -187,6 +187,8 @@ main, .foot { position: relative; z-index: 1; }
 
 /* ---------- the game ---------- */
 .game { height: 680vh; }
+/* sideways swipes over the board spin it; up and down still scroll, pinch still zooms */
+.hero, .game { touch-action: pan-y pinch-zoom; }
 .game-pin { position: sticky; isolation: isolate; top: 0; height: 100svh; display: flex; align-items: center; padding: 0 var(--margin); overflow: hidden; }
 .readout { width: min(34vw, 500px); display: grid; gap: 22px; }
 .move {

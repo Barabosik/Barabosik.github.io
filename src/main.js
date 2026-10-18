@@ -92,15 +92,16 @@ function updateReadout(ply) {
   if (idx === shownIdx) return;
   // when scrubbing fast, several plies pass in one frame: play one sound, not a pile of them
   const now = performance.now();
-  if (shownIdx > -2 && idx >= 0 && now - lastSound > 70) {
+  // mate is never thinned out: a fast scroll still earns the sound and the secret
+  if (shownIdx > -2 && idx === PLIES.length - 1 && idx > shownIdx) {
     lastSound = now;
-    if (idx === PLIES.length - 1 && idx > shownIdx) { sound.mate(); setTimeout(() => secret('opera'), 900); }
-    else {
-      if (CAPTURES.has(idx)) sound.capture();
-      else if (/O-O/.test(PLIES[idx].san)) sound.castle();
-      else sound.move(idx % 2 === 0);
-      if (ANNOTATIONS[idx] && idx > shownIdx) setTimeout(() => sound[ANNOTATIONS[idx]](), 260);
-    }
+    sound.mate();
+    setTimeout(() => secret('opera'), 900);
+  } else if (shownIdx > -2 && idx >= 0 && now - lastSound > 70) {
+    lastSound = now;
+    if (CAPTURES.has(idx)) sound.capture();
+    else if (/O-O/.test(PLIES[idx].san)) sound.castle();
+    else sound.move(idx % 2 === 0);
   }
   shownIdx = idx;
   decode(moveText, idx < 0 ? 'Paris, 1858' : moveLabel(idx));
@@ -158,6 +159,8 @@ async function startBoard() {
         else if (phase === 'land' || (phase === 'end' && (p.type === 'n' || p.type === 'p'))) sound.land();
       },
       onTurn: () => secret('spin'),
+      // the ! or !! chime rings with the badge, as the piece lands
+      onBadge: (kind) => sound[kind](),
     });
   } catch (err) {
     console.warn('WebGL board unavailable', err);
@@ -202,11 +205,14 @@ async function startBoard() {
   // the about section is opaque: once it covers the screen, stop drawing
   ScrollTrigger.create({
     trigger: '.about', start: 'top top',
-    onEnter: () => { active = false; canvas.classList.add('is-off'); },
+    // a fast scroll can arrive here before the eased game reaches mate: finish it, so the sound and the secret still land
+    onEnter: () => { board.settle(); updateReadout(board.ply); active = false; canvas.classList.add('is-off'); },
     onLeaveBack: () => { active = true; board.settle(); canvas.classList.remove('is-off'); },
   });
 
+  // hover (lift, parallax, square name) is for a pointer that floats; a finger never leaves, so it would stick
   window.addEventListener('pointermove', (e) => {
+    if (e.pointerType === 'touch') return;
     board.pointer((e.clientX / window.innerWidth) * 2 - 1, (e.clientY / window.innerHeight) * 2 - 1);
   }, { passive: true });
   boardSquare = () => (active ? board.square : null);
@@ -220,9 +226,11 @@ async function startBoard() {
     if (!active || e.button !== 0 || !overBoard(e.target)) return;
     down = { x: e.clientX, y: e.clientY, lastX: e.clientX, drag: false, mouse: e.pointerType === 'mouse' };
   });
+  // a finger spins it too, with a sideways swipe; an up-down swipe stays a scroll (touch-action: pan-y)
   window.addEventListener('pointermove', (e) => {
-    if (!down?.mouse) return;
-    if (!down.drag && Math.abs(e.clientX - down.x) > 6) {
+    if (!down) return;
+    const dx = Math.abs(e.clientX - down.x), dy = Math.abs(e.clientY - down.y);
+    if (!down.drag && (down.mouse ? dx > 6 : dx > 12 && dx > dy * 1.5)) {
       down.drag = true;
       board.dragStart();
       document.documentElement.classList.add('is-grabbing');
@@ -383,6 +391,8 @@ window.addEventListener('click', (e) => {
   if (sound.on || sound.chosen || e.target.closest('a, .sound')) return;
   sound.set(true);
   paintSound();
+  sound.tap(1);       // the click that wakes the sound is heard too
+
   soundBtn.classList.add('just-on');
   setTimeout(() => soundBtn.classList.remove('just-on'), 1200);
 });
@@ -447,6 +457,8 @@ if (cursor && fineHover && !reduced) {
     mouse.x = e.clientX; mouse.y = e.clientY; moved = true;
     if (!live) { pos.x = mouse.x; pos.y = mouse.y; live = true; cursor.classList.add('is-live'); }
   }, { passive: true });
+  // the page can slide under a still pointer: look again, or the highlight rides away with the button
+  window.addEventListener('scroll', () => { moved = true; }, { passive: true });
   document.documentElement.addEventListener('pointerleave', () => cursor.classList.remove('is-live'));
   document.documentElement.addEventListener('pointerenter', () => { if (live) cursor.classList.add('is-live'); });
   const sense = () => {
@@ -618,6 +630,8 @@ let found = [];
 try { found = JSON.parse(localStorage.getItem('na-secrets') || '[]').filter((k) => k in SECRETS); } catch { /* fresh */ }
 const countEl = $('.secrets-count');
 const hintEl = $('.secrets-hint');
+// on a phone there is no keyboard or console to try, so say what is in reach
+if (hintEl && !window.matchMedia('(any-pointer: fine)').matches) hintEl.textContent = 'Tap the pieces, swipe the board, play the game. Three need a keyboard.';
 const paintSecrets = () => {
   if (countEl) countEl.textContent = String(found.length);
   if (hintEl && found.length === TOTAL) hintEl.textContent = 'All of them. Thanks for poking around.';
