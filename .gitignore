@@ -1,9 +1,10 @@
-node_modules
-dist
-.taste-skill
-_vendor
-.claude
-design-refs
-Nikita-Andreiev-portfolio.html
-linkedin-media
-sound-lab/
+# build output and installs
+node_modules/
+dist/
+
+# local working files, not part of the site (design refs, LinkedIn media, sound tests, vendored skill repos)
+.work/
+
+# agent tooling
+.claude/
+.taste-skill/
