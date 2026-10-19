@@ -160,7 +160,7 @@ async function startBoard() {
       reducedMotion: reduced,
       onLand: (p, phase) => {
         if (phase === 'slam') { sound.slam(); buzz([20, 30, 20]); }
-        else if (phase === 'step') sound.tap(1.3, 0.7);
+        else if (phase === 'step') sound.piece(0.45);
         else if (phase === 'land' || (phase === 'end' && (p.type === 'n' || p.type === 'p'))) sound.land();
       },
       onTurn: () => secret('spin'),
@@ -249,7 +249,7 @@ async function startBoard() {
     } else if (e.type === 'pointerup' && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 8) {
       const hit = board.poke(...ndc(e));
       if (hit?.piece) {
-        ({ n: sound.hop, b: sound.spin, q: sound.rise, k: sound.wobble, p: () => sound.tap(1.2, 0.7), r: () => {} })[hit.piece.type]?.();
+        ({ n: sound.hop, b: sound.spin, q: sound.rise, k: sound.wobble, p: () => sound.piece(), r: () => sound.piece(0.9) })[hit.piece.type]?.();
         buzz(12);
         if (hit.piece.type === 'k' && !hit.piece.white) secret('king');
       }

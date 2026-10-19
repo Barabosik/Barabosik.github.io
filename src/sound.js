@@ -144,26 +144,30 @@ function play(fn, gap = 45, kind = 'ui') {
 }
 
 
-// ---------- music: a lo-fi electric piano, played like a person would. Generated, never a file ----------
-// ii-V-I-vi in F (Gm9, C13, Fmaj9, Dm9) at 68 bpm, close voicings that move by step. Chords are strummed
-// a little late and uneven, the tape wobbles, the record crackles, and the room is small and warm.
-let musicBus = null, musicTimer = 0, musicOn = false, nextBarAt = 0, barIdx = 0, wow = null, crackle = null;
-const BEAT = 60 / 68, BAR = BEAT * 4;
-const PROG = [
-  { root: 98.0, chord: [174.61, 233.08, 293.66, 440.0] },   // Gm9: F Bb D A over G
-  { root: 130.81, chord: [164.81, 233.08, 293.66, 440.0] }, // C13: E Bb D A over C
-  { root: 87.31, chord: [164.81, 220.0, 261.63, 392.0] },   // Fmaj9: E A C G over F
-  { root: 73.42, chord: [174.61, 220.0, 261.63, 329.63] },  // Dm9: F A C E over D
-];
+// ---------- music: felt piano in loops of different lengths. Generated, never a file ----------
+// Eno's tape-loop idea: six short phrases in D dorian, each repeating at its own odd period (17.1 s to 37.7 s),
+// so they line up differently every time and the piece never audibly loops. A low drone swells under them,
+// and the room is large and soft.
+let musicBus = null, musicTimer = 0, musicOn = false, droneAt = 0;
 const rnd = (a, b) => a + Math.random() * (b - a);
+const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
+// [seconds into the loop, midi note, velocity]
+const LOOPS = [
+  { period: 19.7, pan: -0.3, notes: [[0, 62, 0.5], [2.3, 69, 0.38]] },
+  { period: 23.3, pan: 0.35, notes: [[1.1, 65, 0.42], [3.6, 72, 0.3], [5.4, 76, 0.24]] },
+  { period: 29.9, pan: -0.1, notes: [[0.4, 57, 0.45], [4.4, 67, 0.32]] },
+  { period: 31.1, pan: 0.15, notes: [[2.0, 60, 0.36], [2.9, 64, 0.3]] },
+  { period: 37.7, pan: 0, notes: [[0, 50, 0.5]] },
+  { period: 17.1, pan: 0.5, notes: [[6.2, 81, 0.16]] },
+].map((l) => ({ ...l, next: 0 }));
 
-function room() {
-  // a small warm room built from decaying noise
-  const len = ctx.sampleRate * 2.2;
+function room(seconds = 6, decay = 2.2) {
+  // a large soft room built from decaying noise
+  const len = Math.floor(ctx.sampleRate * seconds);
   const buf = ctx.createBuffer(2, len, ctx.sampleRate);
   for (let ch = 0; ch < 2; ch++) {
     const d = buf.getChannelData(ch);
-    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
   }
   const conv = ctx.createConvolver();
   conv.buffer = buf;
@@ -174,137 +178,86 @@ function musicGraph() {
   if (musicBus) return;
   musicBus = ctx.createGain();
   musicBus.gain.value = 0.0001;
-  const warm = ctx.createBiquadFilter();
-  warm.type = 'lowpass';
-  warm.frequency.value = 2600;
-  warm.Q.value = 0.5;
+  const soft = ctx.createBiquadFilter();
+  soft.type = 'lowpass';
+  soft.frequency.value = 4200;
+  const dry = ctx.createGain();
+  dry.gain.value = 0.55;
   const wet = ctx.createGain();
-  wet.gain.value = 0.32;
-  musicBus.connect(warm);
-  warm.connect(master);
-  warm.connect(room()).connect(wet).connect(master);
-
-  // tape wow: one slow wobble shared by every note, so the whole record drifts together
-  wow = ctx.createGain();
-  wow.gain.value = 7;            // cents
-  const lfo = ctx.createOscillator();
-  lfo.frequency.value = 0.45;
-  lfo.connect(wow);
-  lfo.start();
-
-  // vinyl: sparse pops and a breath of hiss, looped
-  const len = ctx.sampleRate * 3;
-  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < len; i++) {
-    d[i] = (Math.random() * 2 - 1) * 0.012;
-    if (Math.random() < 0.00035) d[i] = (Math.random() * 2 - 1) * rnd(0.3, 1);
-  }
-  crackle = ctx.createBufferSource();
-  crackle.buffer = buf;
-  crackle.loop = true;
-  const hp = ctx.createBiquadFilter();
-  hp.type = 'highpass';
-  hp.frequency.value = 1200;
-  const cg = ctx.createGain();
-  cg.gain.value = 0.05;
-  crackle.connect(hp).connect(cg).connect(musicBus);
-  crackle.start();
+  wet.gain.value = 0.55;
+  musicBus.connect(soft);
+  soft.connect(dry).connect(master);
+  soft.connect(room()).connect(wet).connect(master);
 }
 
-// one electric-piano note: a sine carrier, FM'd by its own pitch with an index that falls fast
-// (bright bark on the attack, round tone after), plus a second string a few cents off for width
-function ep(t, f, vel, len = 3) {
-  const out = ctx.createGain();
-  out.gain.setValueAtTime(0.0001, t);
-  out.gain.exponentialRampToValueAtTime(0.07 * vel, t + 0.006);
-  out.gain.exponentialRampToValueAtTime(0.03 * vel, t + 0.35);
-  out.gain.exponentialRampToValueAtTime(0.0001, t + len);
-  const tone = ctx.createBiquadFilter();
-  tone.type = 'lowpass';
-  tone.frequency.setValueAtTime(900 + 2600 * vel, t);
-  tone.frequency.exponentialRampToValueAtTime(700, t + 1.2);
-  tone.connect(out).connect(musicBus);
-
-  const mod = ctx.createOscillator();
-  mod.frequency.value = f;
-  const idx = ctx.createGain();
-  idx.gain.setValueAtTime(f * (0.8 + 1.6 * vel), t);
-  idx.gain.exponentialRampToValueAtTime(f * 0.12, t + 0.5);
-  mod.connect(idx);
-  [[0, 1], [rnd(3, 6), 0.5]].forEach(([cents, lvl]) => {
-    const car = ctx.createOscillator();
-    car.frequency.value = f;
-    car.detune.value = cents;
-    idx.connect(car.frequency);
-    wow.connect(car.detune);
-    const g = ctx.createGain();
-    g.gain.value = lvl;
-    car.connect(g).connect(tone);
-    car.start(t);
-    car.stop(t + len + 0.05);
-  });
-  // the tine: a faint high ping that dies almost at once
-  const tine = ctx.createOscillator();
-  tine.frequency.value = f * 7.1;
-  const tg = ctx.createGain();
-  tg.gain.setValueAtTime(0.0001, t);
-  tg.gain.exponentialRampToValueAtTime(0.012 * vel, t + 0.003);
-  tg.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
-  tine.connect(tg).connect(musicBus);
-  tine.start(t);
-  tine.stop(t + 0.15);
-  mod.start(t);
-  mod.stop(t + len + 0.05);
-}
-
-function bass(t, f, len) {
-  const o = ctx.createOscillator();
-  o.frequency.value = f;
-  wow.connect(o.detune);
-  const g = ctx.createGain();
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(0.11, t + 0.02);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+// felt piano: a few slightly inharmonic partials and a soft hammer; low notes ring longer
+function piano(t, midi, vel, pan) {
+  const f = mtof(midi);
+  const p = ctx.createStereoPanner();
+  p.pan.value = pan;
+  p.connect(musicBus);
   const lp = ctx.createBiquadFilter();
   lp.type = 'lowpass';
-  lp.frequency.value = 320;
-  o.connect(lp).connect(g).connect(musicBus);
-  o.start(t);
-  o.stop(t + len + 0.05);
-}
-
-// a hand never hits every key at once: roll the chord upward with uneven gaps and uneven weight
-function strum(t, notes, vel) {
-  let at = t + rnd(0, 0.02);
-  notes.forEach((f) => {
-    ep(at, f, vel * rnd(0.8, 1.05), rnd(2.6, 3.6));
-    at += rnd(0.012, 0.035);
+  lp.frequency.setValueAtTime(f * (2 + vel * 6) * 0.75, t);
+  lp.frequency.exponentialRampToValueAtTime(Math.max(f * 1.2, 200), t + 2.5);
+  lp.connect(p);
+  const out = ctx.createGain();
+  const dec = Math.max(1.6, 7 - (midi - 48) * 0.09);
+  out.gain.setValueAtTime(0.0001, t);
+  out.gain.exponentialRampToValueAtTime(vel * 0.09, t + 0.012);
+  out.gain.exponentialRampToValueAtTime(vel * 0.034, t + 0.35);
+  out.gain.exponentialRampToValueAtTime(0.0001, t + dec);
+  out.connect(lp);
+  [[1, 1], [2, 0.42], [3, 0.16], [4, 0.07], [5, 0.03]].forEach(([n, a]) => {
+    const o = ctx.createOscillator();
+    o.frequency.value = f * n * (1 + 0.0004 * n * n);
+    const g = ctx.createGain();
+    g.gain.value = a;
+    o.connect(g).connect(out);
+    o.start(t);
+    o.stop(t + dec + 0.1);
   });
+  // the hammer: a tiny filtered tick of noise
+  const n = noise();
+  const nf = ctx.createBiquadFilter();
+  nf.type = 'bandpass';
+  nf.frequency.value = f * 3;
+  nf.Q.value = 1.2;
+  const ng = ctx.createGain();
+  env(ng, t, vel * 0.008, 0.001, 0.025);
+  n.connect(nf).connect(ng).connect(p);
+  n.start(t, Math.random() * 0.4);
+  n.stop(t + 0.04);
 }
 
-function playBar(t) {
-  const { root, chord } = PROG[barIdx % PROG.length];
-  bass(t + rnd(0, 0.015), root, BAR * 0.9);
-  strum(t, chord, rnd(0.55, 0.75));
-  // sometimes a soft push on the "and" of three, top notes only
-  if (Math.random() < 0.55) strum(t + BEAT * 2.5 + rnd(-0.02, 0.03), chord.slice(-2), rnd(0.3, 0.42));
-  // a few melody notes from the chord, an octave up, never on a grid and never crowded
-  let last = -2;
-  for (let e = 1; e < 8; e++) {
-    if (e - last < 2 || Math.random() > 0.2) continue;
-    last = e;
-    const f = chord[(Math.random() * chord.length) | 0] * 2;
-    ep(t + e * (BEAT / 2) + rnd(-0.02, 0.025), f, rnd(0.3, 0.5), rnd(1.8, 2.6));
-  }
-  barIdx++;
+function drone(t, midi, level, len) {
+  const o = ctx.createOscillator();
+  o.frequency.value = mtof(midi);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(level, t + 6);
+  g.gain.setValueAtTime(level, t + len);
+  g.gain.linearRampToValueAtTime(0.0001, t + len + 8);
+  o.connect(g).connect(musicBus);
+  o.start(t);
+  o.stop(t + len + 8.1);
 }
 
 function scheduleMusic() {
-  const now = ctx.currentTime;
-  while (nextBarAt < now + 1.2) {
-    playBar(nextBarAt);
-    nextBarAt += BAR;
+  const now = ctx.currentTime, until = now + 1.5;
+  for (const L of LOOPS) {
+    while (L.next < until) {
+      for (const [dt, m, v] of L.notes) {
+        const t = L.next + dt + rnd(-0.03, 0.03);
+        if (t > now) piano(t, m, v * rnd(0.85, 1.1), L.pan);
+      }
+      L.next += L.period;
+    }
+  }
+  while (droneAt < until) {
+    drone(droneAt, 38, 0.014, 12);
+    drone(droneAt + 3, 45, 0.007, 10);
+    droneAt += 22;
   }
 }
 
@@ -316,7 +269,9 @@ function setMusic(on) {
   musicBus.gain.setValueAtTime(Math.max(musicBus.gain.value, 0.0001), t);
   if (on && !musicOn) {
     musicOn = true;
-    nextBarAt = Math.max(nextBarAt, t + 0.3);
+    // each loop starts somewhere in its first few seconds, so no two visits begin alike
+    for (const L of LOOPS) L.next = Math.max(L.next, t + 0.3 + rnd(0, 6));
+    droneAt = Math.max(droneAt, t + 0.3);
     scheduleMusic();
     musicTimer = setInterval(scheduleMusic, 300);
     musicBus.gain.exponentialRampToValueAtTime(0.3, t + 4);   // the whole bed sits far under the UI sounds
@@ -340,21 +295,31 @@ if (enabled) {
   window.addEventListener('keydown', start);
 }
 
-// a tap on wood: three filter colours in turn and a little pitch drift, so a hundred clicks never sound the same
-const TAP = [1800, 2350, 1450];
-let tapIdx = 0;
+// a pure ping: one sine (or triangle) with a quick rise and a smooth exponential fall
 const drift = (k) => 1 + (Math.random() - 0.5) * k;
-function tap(t, pitch, level) {
-  const n = noise();
-  const bp = ctx.createBiquadFilter();
-  bp.type = 'bandpass';
-  bp.frequency.value = TAP[tapIdx++ % TAP.length] * pitch * drift(0.12);
-  bp.Q.value = 6;
+function ping(t, freq, peak, decay, type = 'sine') {
+  const o = ctx.createOscillator();
+  o.type = type;
+  o.frequency.value = freq;
   const g = ctx.createGain();
-  env(g, t, 0.32 * level, 0.002, 0.06);
-  n.connect(bp).connect(g).connect(master);
-  n.start(t, Math.random() * 0.3);
-  n.stop(t + 0.09);
+  env(g, t, peak, 0.0015, decay);
+  o.connect(g).connect(master);
+  o.start(t);
+  o.stop(t + decay + 0.05);
+}
+
+// a click on the page: a soft glass tick, a short high ping with a faint octave; a little pitch drift
+// so a hundred clicks never sound the same
+function tap(t, pitch, level) {
+  const f = 2637 * pitch * drift(0.06);
+  ping(t, f, 0.035 * level, 0.045);
+  ping(t, f * 2, 0.006 * level, 0.02);
+}
+
+// touching a piece: the board's own wood, a few struck modes and a low knock, lighter than a move
+function piece(t, level) {
+  const k = drift(0.05);
+  [[1180, 0.1, 40], [1900, 0.05, 50], [3050, 0.02, 70], [240, 0.1, 28]].forEach(([f, a, damp]) => ping(t, f * k, a * level, 1 / damp));
 }
 
 export const sound = {
@@ -416,16 +381,9 @@ export const sound = {
     tone(t, 130.81, 0.07, 1.4);
     [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(t + i * 0.06, f, 0.06, 0.9, 'triangle'));
   }, 0, 'secret'),
-  press: () => play((t) => {
-    const o = ctx.createOscillator();
-    o.frequency.setValueAtTime(520, t);
-    o.frequency.exponentialRampToValueAtTime(260, t + 0.05);
-    const g = ctx.createGain();
-    env(g, t, 0.1, 0.003, 0.06);
-    o.connect(g).connect(master);
-    o.start(t);
-    o.stop(t + 0.1);
-  }, 40, 'press'),
+  // links and buttons: two glass notes rising a fifth
+  press: () => play((t) => { ping(t, 1318.5, 0.06, 0.12, 'triangle'); ping(t + 0.045, 1975.5, 0.05, 0.18, 'triangle'); }, 40, 'press'),
+  piece: (level = 1) => play((t) => piece(t, level), 40, 'piece'),
   whoosh: () => play((t) => {
     const n = noise();
     const f = ctx.createBiquadFilter();
