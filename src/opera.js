@@ -43,6 +43,8 @@ export const ANNOTATION_STYLE = {
   great: { color: '#5c8bb0', text: '!', name: 'Great move' },
   brilliant: { color: '#26c2a3', text: '!!', name: 'Brilliant move' },
 };
+// how far into an annotated move (0..1) the piece lands: the badge, the chime and the readout colour all start here
+export const BADGE_AT = 0.72;
 
 export const NOTES = [
   { from: 0, text: 'Paul Morphy plays the Duke of Brunswick and Count Isouard, together, in a box at the opera.' },

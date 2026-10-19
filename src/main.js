@@ -2,7 +2,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SplitText } from 'gsap/SplitText';
 import Lenis from 'lenis';
-import { PLIES, NOTES, moveLabel, buildTracks, ANNOTATIONS, ANNOTATION_STYLE } from './opera.js';
+import { PLIES, NOTES, moveLabel, buildTracks, ANNOTATIONS, ANNOTATION_STYLE, BADGE_AT } from './opera.js';
 import { sound } from './sound.js';
 import { createFx } from './fx.js';
 
@@ -87,8 +87,24 @@ function decode(el, text) {
   decodeRaf = requestAnimationFrame(tick);
 }
 
+// annotated moves wear their badge in the readout too, from the moment the piece lands, with the board's badge and chime
+let shownKind = null;
+function showKind(kind) {
+  if (kind === shownKind) return;
+  shownKind = kind;
+  moveText.parentElement.dataset.kind = kind || '';
+  if (!moveBadge) return;
+  moveBadge.classList.toggle('is-on', !!kind);
+  if (kind) {
+    moveBadge.textContent = ANNOTATION_STYLE[kind].text;
+    moveBadge.dataset.kind = kind;
+    moveBadge.setAttribute('title', ANNOTATION_STYLE[kind].name);
+  }
+}
+
 function updateReadout(ply) {
   const idx = Math.min(PLIES.length - 1, Math.ceil(ply - 0.001) - 1);
+  showKind((idx >= 0 && ply - idx >= BADGE_AT && ANNOTATIONS[idx]) || null);
   if (idx === shownIdx) return;
   // when scrubbing fast, several plies pass in one frame: play one sound, not a pile of them
   const now = performance.now();
@@ -105,17 +121,6 @@ function updateReadout(ply) {
   }
   shownIdx = idx;
   decode(moveText, idx < 0 ? 'Paris, 1858' : moveLabel(idx));
-  // annotated moves wear their badge in the readout too
-  const kind = ANNOTATIONS[idx];
-  moveText.parentElement.dataset.kind = kind || '';
-  if (moveBadge) {
-    moveBadge.classList.toggle('is-on', !!kind);
-    if (kind) {
-      moveBadge.textContent = ANNOTATION_STYLE[kind].text;
-      moveBadge.dataset.kind = kind;
-      moveBadge.setAttribute('title', ANNOTATION_STYLE[kind].name);
-    }
-  }
   if (!reduced) gsap.fromTo(moveText, { yPercent: 30, opacity: 0.2 }, { yPercent: 0, opacity: 1, duration: 0.3, ease: 'power3.out', overwrite: 'auto' });
   const moveNo = idx < 0 ? -1 : Math.floor(idx / 2);
   ticks.forEach((t, i) => { t.classList.toggle('on', i === moveNo); t.classList.toggle('done', i < moveNo); });

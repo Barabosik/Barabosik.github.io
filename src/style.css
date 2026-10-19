@@ -490,9 +490,11 @@ html.is-grabbing, html.is-grabbing * { cursor: grabbing !important; user-select:
 }
 .move-badge[data-kind="great"] { background: #5c8bb0; }
 .move-badge[data-kind="brilliant"] { background: #26c2a3; }
-.move-badge.is-on { scale: 1; opacity: 1; transition-delay: 240ms; }
+.move-badge.is-on { scale: 1; opacity: 1; }
 /* the move itself takes the classification colour (chess.com's: great blue, brilliant teal) */
-.move-text { transition: color 450ms ease, text-shadow 450ms ease; }
+/* it eases into the colour as the piece lands, and drops it at once when the next move takes the line */
+.move-text { transition: color 120ms ease, text-shadow 120ms ease; }
+.move[data-kind="great"] .move-text, .move[data-kind="brilliant"] .move-text { transition-duration: 450ms; }
 .move[data-kind="great"] .move-text { color: #5c8bb0; text-shadow: 0 0 28px rgba(92, 139, 176, 0.35); }
 .move[data-kind="brilliant"] .move-text { color: #26c2a3; text-shadow: 0 0 32px rgba(38, 194, 163, 0.4); }
 

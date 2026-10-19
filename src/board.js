@@ -4,7 +4,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { MeshSurfaceSampler } from 'three/addons/math/MeshSurfaceSampler.js';
 import { readGlb } from './glb.js';
 import piecesUrl from './assets/pieces.glb?url';
-import { buildTracks, squareXZ, PLIES, ANNOTATIONS, ANNOTATION_STYLE } from './opera.js';
+import { buildTracks, squareXZ, PLIES, ANNOTATIONS, ANNOTATION_STYLE, BADGE_AT } from './opera.js';
 
 const COLORS = {
   bg: 0x161c1a,
@@ -264,7 +264,8 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
   scene.add(ground);
 
   // last-move squares
-  const markMat = new THREE.MeshBasicMaterial({ color: COLORS.accent, transparent: true, opacity: 0, depthWrite: false });
+  // not tone-mapped, like the badge sprite: an annotated move's squares wear exactly the badge's colour
+  const markMat = new THREE.MeshBasicMaterial({ color: COLORS.accent, transparent: true, opacity: 0, depthWrite: false, toneMapped: false });
   // annotated moves: a round badge (! or !!) that pops up over the piece as it lands, always facing the camera
   const accentColor = new THREE.Color(COLORS.accent);
   const badges = Object.entries(ANNOTATIONS).map(([idx, kind]) => {
@@ -680,8 +681,8 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
     const idx = Math.min(PLIES.length - 1, Math.max(0, Math.ceil(ply) - 1));
     for (const b of badges) {
       const k = ply - b.idx;
-      const inn = clamp01((k - 0.72) / 0.28);           // pops as the piece lands, full size once it rests
-      const out = clamp01((k - 1.55) / 0.3);            // fades while the next move is played
+      const inn = clamp01((k - BADGE_AT) / (1 - BADGE_AT)); // pops as the piece lands, full size once it rests
+      const out = clamp01((k - 1) / 0.3);                   // fades as the next move starts, with the readout
       const on = inn * (1 - out);
       b.on = on;
       b.sprite.visible = on > 0.001;
@@ -694,7 +695,7 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
         b.sprite.position.y = b.y - (1 - Math.min(1, pop)) * 0.25 + Math.sin(time * 2.2) * 0.035;
       }
       // landing (scrolling forward): a ring runs out through the squares
-      if (k >= 0.72 && !b.landed) {
+      if (k >= BADGE_AT && !b.landed) {
         b.landed = true;
         const [x, z] = squareXZ(PLIES[b.idx].moves[0][1]);
         if (k < 1.2) {
@@ -708,7 +709,8 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
     const fade = easeOut(clamp01((ply - idx) / 0.35));
     const showMarks = (ms, mat, i, amount) => {
       const mv = PLIES[i].moves[0];
-      ms.forEach((mk, j) => { const [x, z] = squareXZ(mv[j]); mk.position.set(x, 0.012, z); });
+      // the squares ride the ripple with their tiles, or a raised tile would cover them
+      ms.forEach((mk, j) => { const [x, z] = squareXZ(mv[j]); mk.position.set(x, 0.012 + (waves.length ? waveAt(x, z) : 0), z); });
       // annotated moves: the squares take the classification colour
       const b = badges.find((bb) => bb.idx === i);
       const on = b ? b.on : 0;
