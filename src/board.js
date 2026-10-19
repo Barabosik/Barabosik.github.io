@@ -261,13 +261,17 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
     return { idx: Number(idx), kind, sprite, y, color: new THREE.Color(st.color), landed: false };
   });
 
-  const marks = [0, 1].map(() => {
-    const mk = new THREE.Mesh(new THREE.PlaneGeometry(0.985, 0.985), markMat);
+  // the squares of the move before fade out while the new move's fade in
+  const prevMarkMat = markMat.clone();
+  const mkMarks = (mat) => [0, 1].map(() => {
+    const mk = new THREE.Mesh(new THREE.PlaneGeometry(0.985, 0.985), mat);
     mk.rotation.x = -Math.PI / 2;
     mk.position.y = 0.012;
     board.add(mk);
     return mk;
   });
+  const marks = mkMarks(markMat);
+  const prevMarks = mkMarks(prevMarkMat);
 
   // the last move, Rd8#, is signed on the board: a jade stroke runs up the d-file behind the rook
   const [lx, lz0] = squareXZ('d1');
@@ -617,20 +621,13 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
       p.mesh.scale.set(s * o.s, s * o.s * o.sy, s * o.s);
       p.mesh.visible = y > -1.4;
     }
-    // highlight the squares of the latest move
     const idx = Math.min(PLIES.length - 1, Math.max(0, Math.ceil(ply) - 1));
-    const mv = PLIES[idx].moves[0];
-    const [fx, fz] = squareXZ(mv[0]);
-    const [tx, tz] = squareXZ(mv[1]);
-    marks[0].position.set(fx, 0.012, fz);
-    marks[1].position.set(tx, 0.012, tz);
-    markMat.opacity = ply > 0.02 ? 0.32 : 0;
-    markMat.color.copy(accentColor);
     for (const b of badges) {
       const k = ply - b.idx;
-      const inn = clamp01((k - 0.72) / 0.3);            // pops as the piece lands
+      const inn = clamp01((k - 0.72) / 0.28);           // pops as the piece lands, full size once it rests
       const out = clamp01((k - 1.55) / 0.3);            // fades while the next move is played
       const on = inn * (1 - out);
+      b.on = on;
       b.sprite.visible = on > 0.001;
       if (b.sprite.visible) {
         const pop = elasticOut(inn);
@@ -639,8 +636,6 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
         b.sprite.material.opacity = Math.min(1, inn * 4) * (1 - out);
         b.sprite.material.rotation = (1 - easeOut(inn)) * 0.5;
         b.sprite.position.y = b.y - (1 - Math.min(1, pop)) * 0.25 + Math.sin(time * 2.2) * 0.035;
-        // the move's squares take the classification colour
-        if (idx === b.idx) { markMat.color.lerpColors(accentColor, b.color, on); markMat.opacity = 0.32 + 0.3 * on; }
       }
       // landing (scrolling forward): a ring runs out through the squares
       if (k >= 0.72 && !b.landed) {
@@ -652,6 +647,21 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
         }
       } else if (k < 0.5) b.landed = false;
     }
+    // highlight the squares of the latest move: they fade in as it starts while the previous move's fade out,
+    // so a slow scroll (or a board resting right on a move) never snaps them over in one frame
+    const fade = easeOut(clamp01((ply - idx) / 0.35));
+    const showMarks = (ms, mat, i, amount) => {
+      const mv = PLIES[i].moves[0];
+      ms.forEach((mk, j) => { const [x, z] = squareXZ(mv[j]); mk.position.set(x, 0.012, z); });
+      // annotated moves: the squares take the classification colour
+      const b = badges.find((bb) => bb.idx === i);
+      const on = b ? b.on : 0;
+      mat.color.lerpColors(accentColor, b ? b.color : accentColor, on);
+      mat.opacity = (0.32 + 0.3 * on) * amount;
+    };
+    showMarks(marks, markMat, idx, ply > 0.02 ? fade : 0);
+    if (idx > 0) showMarks(prevMarks, prevMarkMat, idx - 1, 1 - fade);
+    else prevMarkMat.opacity = 0;
     const draw = easeInOut(clamp01(ply - (PLIES.length - 1)));
     mateLine.scale.y = Math.max(0.0001, draw * (lz0 - lz1));
     mateLine.visible = draw > 0.001;
