@@ -194,8 +194,11 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
   // the pieces download while the renderer, the environment and the board are set up below
   const piecesFile = fetch(piecesUrl);
   piecesFile.catch(() => {});
+  // phones and tablets draw fewer pixels and a smaller shadow map: at that size neither shows, and every frame is cheaper
+  const small = window.matchMedia('(max-width: 760px), (pointer: coarse)').matches;
+  const maxDpr = small ? 1.5 : 1.75;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxDpr));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
   renderer.shadowMap.enabled = true;
@@ -214,7 +217,7 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
   const key = new THREE.DirectionalLight(0xfff4e6, 2.4);
   key.position.set(-6, 12, 7);
   key.castShadow = true;
-  key.shadow.mapSize.set(2048, 2048);
+  key.shadow.mapSize.setScalar(small ? 1024 : 2048);
   Object.assign(key.shadow.camera, { left: -7, right: 7, top: 7, bottom: -7, near: 1, far: 30 });
   key.shadow.bias = -0.0004;
   key.shadow.normalBias = 0.02;
@@ -410,7 +413,6 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
     return piece;
   });
   const blackKing = pieces.find((p) => p.type === 'k' && !p.white);
-  const small = window.matchMedia('(max-width: 760px), (pointer: coarse)').matches;
   const pr = () => renderer.getPixelRatio();
 
   await breathe();
@@ -793,7 +795,7 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
   const follow = (v, t, rate, dt) => v + (t - v) * (1 - Math.exp(-dt * rate));
 
   // if the GPU cannot keep up, trade resolution for frames (never the other way, so it cannot oscillate)
-  let dpr = Math.min(window.devicePixelRatio || 1, 1.75);
+  let dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
   let slow = 0;
   function adapt(dt) {
     slow = dt > 1 / 40 ? slow + dt : Math.max(0, slow - dt * 0.5);

@@ -307,7 +307,8 @@ $$('[data-words]').forEach((p) => {
     if (i >= 6 && i <= 8 && p.classList.contains('about-text')) s.classList.add('accent');
     p.append(s, i < words.length - 1 ? ' ' : '');
   });
-  if (!reduced) gsap.fromTo(p.querySelectorAll('.w'), { opacity: 0.22 }, {
+  // unread words rest at 0.55: dim enough to show the reading line, still readable (WCAG AA) before they light up
+  if (!reduced) gsap.fromTo(p.querySelectorAll('.w'), { opacity: 0.55 }, {
     opacity: 1, ease: 'none', stagger: 0.05,
     scrollTrigger: { trigger: p, start: 'top 78%', end: 'bottom 42%', scrub: 0.4 },
   });
