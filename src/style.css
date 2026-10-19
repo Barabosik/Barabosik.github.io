@@ -161,7 +161,7 @@ main, .foot { position: relative; z-index: 1; }
 .lines .line { display: block; overflow: hidden; padding-bottom: 0.06em; margin-bottom: -0.06em; }
 .lines [data-line] { display: block; }
 .hero-foot { display: grid; gap: 24px; max-width: 42ch; }
-.hero-lead { font-size: var(--step-lead); line-height: 1.38; }
+.hero-lead { font-size: var(--step-lead); line-height: 1.38; text-wrap: pretty; }
 
 @media (prefers-reduced-motion: no-preference) {
   .js .lines [data-line] { transform: translateY(105%); animation: line-up 1000ms var(--ease-out) forwards; animation-delay: calc(var(--i) * 110ms + 200ms); }
