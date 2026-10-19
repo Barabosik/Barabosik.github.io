@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { MeshSurfaceSampler } from 'three/addons/math/MeshSurfaceSampler.js';
+import { readGlb } from './glb.js';
+import piecesUrl from './assets/pieces.glb?url';
 import { buildTracks, squareXZ, PLIES, ANNOTATIONS, ANNOTATION_STYLE } from './opera.js';
 
 const COLORS = {
@@ -20,7 +22,37 @@ const easeOut = (t) => 1 - Math.pow(1 - t, 4);
 const lerp = (a, b, t) => a + (b - a) * t;
 const elasticOut = (t) => (t <= 0 ? 0 : t >= 1 ? 1 : Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * ((2 * Math.PI) / 3)) + 1);
 
-// ---------- piece geometry: lathe silhouettes, one extruded knight head ----------
+// ---------- piece geometry: turned and baked in Blender (tools/pieces/build_pieces.py), meshopt-compressed ----------
+// The file is quantized, so each mesh is unpacked to plain floats in board units: the burn, the embers and the
+// raycasts see the same coordinates as before. COLOR_0 carries the bake: r = occlusion, g = soft dome light.
+async function loadPieces(data) {
+  const res = await data;
+  if (!res.ok) throw new Error(`pieces.glb ${res.status}`);
+  const geos = await readGlb(await res.arrayBuffer(), [['position', 'POSITION', 3], ['normal', 'NORMAL', 3], ['bake', 'COLOR_0', 2]]);
+  if (!'prnbqk'.split('').every((k) => geos[k])) throw new Error('pieces.glb is missing a piece');
+  return geos;
+}
+
+// the dome light's level on an upright side: the bake is read relative to it, so the sides keep the colours they had
+const BAKE_SIDE = 0.36;
+
+// the bake rides on every piece material. Occlusion takes ambient and reflected light (and some of the key light) out
+// of the grooves, the collars and the foot; the dome term lifts the tops and settles the feet. The lights stay live,
+// and the dome is the same from every side, so the bake holds when a piece turns or the board spins.
+function withBake(sh) {
+  sh.vertexShader = 'attribute vec2 bake;\nvarying vec2 vBake;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvBake = bake;');
+  sh.fragmentShader = 'varying vec2 vBake;\n' + sh.fragmentShader.replace('#include <aomap_fragment>', `#include <aomap_fragment>
+    float bakeLight = mix(1.0, clamp(vBake.y / ${BAKE_SIDE.toFixed(2)}, 0.55, 1.4), 0.45);
+    reflectedLight.directDiffuse *= mix(1.0, vBake.x, 0.45) * bakeLight;
+    reflectedLight.indirectDiffuse *= vBake.x * bakeLight;
+    float bakeSO = computeSpecularOcclusion(saturate(dot(geometryNormal, geometryViewDir)), vBake.x, material.roughness);
+    reflectedLight.indirectSpecular *= bakeSO;
+    #ifdef USE_CLEARCOAT
+      clearcoatSpecularIndirect *= bakeSO;
+    #endif`);
+}
+
+// ---------- fallback geometry, should the file not arrive: lathe silhouettes, one extruded knight head ----------
 const V = (x, y) => new THREE.Vector2(x, y);
 function arc(cx, cy, r, a0, a1, n = 10) {
   const pts = [];
@@ -67,7 +99,13 @@ function kingGeometry() {
 }
 
 function pieceGeometries() {
-  return {
+  // no bake here: full occlusion and the side level of the dome, so the shader leaves these as they were
+  const neutral = (g) => {
+    const a = new Float32Array(g.attributes.position.count * 2);
+    for (let i = 0; i < a.length; i += 2) { a[i] = 1; a[i + 1] = BAKE_SIDE; }
+    return g.setAttribute('bake', new THREE.BufferAttribute(a, 2));
+  };
+  const geos = {
     p: lathe([V(0.16, 0.22), V(0.12, 0.36), V(0.11, 0.42), V(0.19, 0.45), V(0.19, 0.48), V(0.1, 0.5),
       ...arc(0, 0.62, 0.15, -0.9, Math.PI / 2)]),
     r: lathe([V(0.22, 0.2), V(0.18, 0.3), V(0.17, 0.58), V(0.25, 0.62), V(0.25, 0.82), V(0.19, 0.82),
@@ -79,6 +117,8 @@ function pieceGeometries() {
     k: kingGeometry(),
     n: knightGeometry(),
   };
+  Object.values(geos).forEach(neutral);
+  return geos;
 }
 
 // ---------- capture: the piece burns away from the crown down, with a jade edge ----------
@@ -102,6 +142,7 @@ const NOISE = `
 function burnable(base, uT, depth = false) {
   const m = depth ? new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking }) : base.clone();
   m.onBeforeCompile = (sh) => {
+    if (!depth) withBake(sh);
     sh.uniforms.uT = uT;
     sh.vertexShader = 'varying vec3 vPos;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvPos = position;');
     let f = sh.fragmentShader.replace('#include <clipping_planes_fragment>',
@@ -150,6 +191,9 @@ const SHIFT = {
 const breathe = () => new Promise((r) => setTimeout(r, 0));
 
 export async function createBoard(canvas, { reducedMotion = false, onLand = null, onTurn = null, onBadge = null } = {}) {
+  // the pieces download while the renderer, the environment and the board are set up below
+  const piecesFile = fetch(piecesUrl);
+  piecesFile.catch(() => {});
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -330,12 +374,22 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
   board.add(pool);
 
   await breathe();
-  const geos = pieceGeometries();
+  let geos;
+  try {
+    geos = await loadPieces(piecesFile);
+  } catch (err) {
+    console.warn('Baked pieces unavailable, using the built-in set', err);
+    geos = pieceGeometries();
+  }
   await breathe();
   const mats = {
     white: new THREE.MeshPhysicalMaterial({ color: COLORS.bone, roughness: 0.34, clearcoat: 0.5, clearcoatRoughness: 0.3 }),
     black: new THREE.MeshPhysicalMaterial({ color: COLORS.ebony, roughness: 0.3, clearcoat: 0.7, clearcoatRoughness: 0.22 }),
   };
+  for (const mt of Object.values(mats)) {
+    mt.onBeforeCompile = withBake;
+    mt.customProgramCacheKey = () => 'baked';
+  }
   const meshes = [];
   const pieceMats = [mats.white, mats.black];
   const pieces = buildTracks().map((p) => {
