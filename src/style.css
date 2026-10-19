@@ -338,6 +338,28 @@ html.is-grabbing, html.is-grabbing * { cursor: grabbing !important; user-select:
 .project-tether .project-text { grid-column: 1 / span 5; margin-top: 56px; }
 .project-tether .shot-small { grid-column: 7 / -1; margin-top: 56px; }
 
+/* p3n.si: the old page and the new one under one handle; drag (or arrow keys) to move the line */
+.project-p3n .shot-compare { grid-column: 1 / span 7; grid-row: 1; }
+.project-p3n .project-text { grid-column: 9 / -1; grid-row: 1; align-self: center; }
+.compare { position: relative; --pos: 50%; touch-action: pan-y; }
+.compare img { display: block; }
+.compare .compare-before { position: absolute; inset: 0; height: 100%; clip-path: inset(0 calc(100% - var(--pos)) 0 0); }
+.compare input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize; touch-action: pan-y; }
+.compare-handle { position: absolute; top: 0; bottom: 0; left: var(--pos); width: 2px; margin-left: -1px; background: var(--accent); pointer-events: none; }
+.compare-handle::after {
+  content: ''; position: absolute; top: 50%; left: 50%; width: 44px; height: 44px; translate: -50% -50%; border-radius: 50%;
+  background: var(--accent) center / 22px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23161c1a' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6l-6 6 6 6M15 6l6 6-6 6'/%3E%3C/svg%3E");
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+.compare input:focus-visible ~ .compare-handle::after { outline: 2px solid var(--accent); outline-offset: 4px; }
+.compare-tag {
+  position: absolute; top: 14px; padding: 6px 10px; pointer-events: none;
+  font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.04em; text-transform: uppercase;
+  background: rgba(22, 28, 26, 0.82); color: var(--ink); transition: opacity 200ms ease;
+}
+.compare-tag.is-before { left: 14px; }
+.compare-tag.is-after { right: 14px; color: var(--accent); }
+
 .also { margin-top: var(--section); font-size: var(--step-lead); line-height: 1.36; max-width: 30em; margin-left: 34%; }
 .also a { text-underline-offset: 0.2em; text-decoration-thickness: 1px; }
 .also a:hover { text-decoration-thickness: 2px; }
@@ -451,7 +473,12 @@ html.is-grabbing, html.is-grabbing * { cursor: grabbing !important; user-select:
   .record-word { margin-bottom: 16px; font-weight: 600; }
   .record-list + .record-list { margin-top: 10px; }
   .project-chess .project-text, .project-chess .shot-main, .project-chess .shot-side,
-  .project-tether .project-text, .project-tether .shot-small { grid-column: 1 / -1; grid-row: auto; position: static; margin-top: 0; }
+  .project-tether .project-text, .project-tether .shot-small,
+  .project-p3n .project-text, .project-p3n .shot-compare { grid-column: 1 / -1; grid-row: auto; position: static; margin-top: 0; }
+  .project-p3n .shot-compare { margin-top: 40px; }
+  .compare-tag { top: 8px; padding: 4px 7px; font-size: 0.625rem; }
+  .compare-tag.is-before { left: 8px; }
+  .compare-tag.is-after { right: 8px; }
   .project-chess .shot-main { margin-top: 40px; }
   .project-chess .shot-side, .project-tether .shot-small { display: none; }
   .project-chess .shot-main { aspect-ratio: 4 / 5; }

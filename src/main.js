@@ -328,7 +328,7 @@ if (!reduced) {
     gsap.from(el.children, { y: 22, opacity: 0, duration: 0.8, ease: 'power3.out', stagger: 0.075, scrollTrigger: once(el) });
   });
   $$('[data-shot]').forEach((fig) => {
-    const img = fig.querySelector('img');
+    const img = fig.querySelectorAll('img');
     gsap.fromTo(fig, { clipPath: 'inset(100% 0% 0% 0%)' }, {
       clipPath: 'inset(0% 0% 0% 0%)', duration: 1.25, ease: 'expo.out', scrollTrigger: once(fig, 'top 88%'),
     });
@@ -545,6 +545,24 @@ if (fineHover) [['.project-chess', 'Open'], ['.project-tether', 'Play']].forEach
   $$(`${sel} [data-shot]`).forEach((fig) => {
     fig.dataset.cursor = word;
     if (href) fig.addEventListener('click', () => window.open(href, '_blank', 'noopener'));
+  });
+});
+
+// p3n.si before and after: the line follows the range input; the first time it is on screen it sweeps once, so it reads as something to drag
+$$('[data-compare]').forEach((box) => {
+  const input = box.querySelector('input');
+  const set = (v) => box.style.setProperty('--pos', `${v}%`);
+  let hint = null;
+  input.addEventListener('input', () => { hint?.kill(); set(input.value); });
+  if (reduced) return;
+  const at = { v: 50 };
+  ScrollTrigger.create({
+    trigger: box, start: 'top 70%', once: true,
+    onEnter: () => {
+      hint = gsap.timeline({ delay: 0.9, onUpdate: () => set(at.v) })
+        .to(at, { v: 30, duration: 0.7, ease: 'power2.inOut' })
+        .to(at, { v: 50, duration: 0.8, ease: 'power2.inOut' });
+    },
   });
 });
 
