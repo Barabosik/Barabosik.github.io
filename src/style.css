@@ -89,7 +89,8 @@ input, textarea { caret-color: var(--accent); }
 
 /* ---------- WebGL stage ---------- */
 .stage {
-  position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0;
+  /* the large viewport: the address bar sliding in and out on a phone never resizes it */
+  position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: 100lvh; z-index: 0;
   display: block; transition: opacity 400ms ease;
 }
 .stage.is-off { opacity: 0; visibility: hidden; }
@@ -250,7 +251,7 @@ main, .foot { position: relative; z-index: 1; }
 @media (hover: none), (pointer: coarse) { .cursor, .sound-pill { display: none; } }
 [data-cursor] { cursor: pointer; }
 
-.fx { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 24; pointer-events: none; }
+.fx { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: 100lvh; z-index: 24; pointer-events: none; }
 html.is-grabbing, html.is-grabbing * { cursor: grabbing !important; user-select: none; }
 .hero-title .hc { display: inline-block; will-change: transform; }
 .hero-title [data-line] { cursor: pointer; }

@@ -766,9 +766,12 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
     camera.setViewOffset(w, hh, -sx * w, -sy * hh, w, hh);
   }
 
-  function resize() {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
+  // sized to the canvas, not the window. The canvas is a large-viewport box, so a phone's address bar sliding in
+  // and out (a resize on every change of scroll direction) leaves it alone, and the board no longer jumps when it does
+  function resize(force = false) {
+    const w = canvas.clientWidth || window.innerWidth;
+    const h = canvas.clientHeight || window.innerHeight;
+    if (!force && w === state.w && h === state.h) return;
     state.w = w;
     state.h = h;
     state.wide = w / h > 0.95;
@@ -796,16 +799,40 @@ export async function createBoard(canvas, { reducedMotion = false, onLand = null
   }
   const follow = (v, t, rate, dt) => v + (t - v) * (1 - Math.exp(-dt * rate));
 
-  // if the GPU cannot keep up, trade resolution for frames (never the other way, so it cannot oscillate)
-  let dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
-  let slow = 0;
+  // if the GPU cannot keep up, trade resolution for frames; once frames have been easy for a while, win it back
+  // (at most twice, so it cannot see-saw)
+  const startDpr = Math.min(window.devicePixelRatio || 1, maxDpr);
+  let dpr = startDpr;
+  let slow = 0, easy = 0, ups = 0, quiet = 0;
+  // a pinch-zoom on a phone: while zoomed in, draw at a higher pixel ratio so the board stays sharp under the fingers,
+  // and back to normal once zoomed out. The pinch's own slow frames say nothing about the GPU, so they are not counted
+  const vv = window.visualViewport;
+  let zoom = 1, zoomTimer = 0;
+  const applyDpr = () => {
+    renderer.setPixelRatio(Math.min(dpr * zoom, Math.max(dpr, 2.5)));
+    resize(true);
+  };
+  vv?.addEventListener('resize', () => {
+    const z = Math.max(1, Math.round(vv.scale * 4) / 4);   // quarter steps, so the canvas is not reallocated every frame
+    if (z === zoom) return;
+    quiet = 1.5;
+    clearTimeout(zoomTimer);
+    zoomTimer = setTimeout(() => { zoom = Math.max(1, Math.round(vv.scale * 4) / 4); applyDpr(); }, 180);
+  });
   function adapt(dt) {
+    if (quiet > 0) { quiet -= dt; slow = 0; easy = 0; return; }
     slow = dt > 1 / 40 ? slow + dt : Math.max(0, slow - dt * 0.5);
+    easy = dt < 1 / 50 ? easy + dt : 0;
     if (slow > 0.8 && dpr > 1) {
       dpr = Math.max(1, dpr - 0.25);
-      renderer.setPixelRatio(dpr);
-      resize();
+      applyDpr();
       slow = 0;
+      easy = 0;
+    } else if (easy > 6 && dpr < startDpr && ups < 2) {
+      dpr = Math.min(startDpr, dpr + 0.25);
+      ups++;
+      applyDpr();
+      easy = 0;
     }
   }
 

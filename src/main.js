@@ -285,7 +285,11 @@ Promise.all([document.fonts.load('800 100px "Big Shoulders"'), document.fonts.re
   .then(() => { fitAll(); ScrollTrigger.refresh(); });
 window.addEventListener('load', () => { fitAll(); ScrollTrigger.refresh(); });
 document.fonts.addEventListener('loadingdone', fitAll);
-window.addEventListener('resize', fitAll);
+let fitWidth = document.documentElement.clientWidth;
+window.addEventListener('resize', () => {
+  const w = document.documentElement.clientWidth;
+  if (w !== fitWidth) { fitWidth = w; fitAll(); }
+});
 
 // header: transparent over the hero; turns solid the moment the big name slides under it, and stays put
 const top = $('.top');

@@ -10,10 +10,14 @@ export function createFx(canvas) {
   const sparks = [];
   let raf = 0, last = 0;
 
+  // sized to its own large-viewport box, so a phone's address bar sliding does not reallocate (and blank) it
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    w = window.innerWidth;
-    h = window.innerHeight;
+    const nw = canvas.clientWidth || window.innerWidth, nh = canvas.clientHeight || window.innerHeight;
+    if (nw === w && nh === h && dpr === canvas._dpr) return;
+    w = nw;
+    h = nh;
+    canvas._dpr = dpr;
     canvas.width = w * dpr;
     canvas.height = h * dpr;
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
