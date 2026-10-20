@@ -5,6 +5,8 @@
 @font-face { font-family: 'Public Sans'; font-style: normal; font-weight: 400 700; font-display: swap; src: url(/fonts/PublicSans.woff2) format('woff2'); }
 
 :root {
+  --vh: 1vh;    /* set in px by the head script, see there */
+  --lvh: 1vh;
   --bg: #161c1a;
   --surface: #1f2725;
   --ink: #e3e2da;
@@ -21,7 +23,7 @@
   --step-body: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
   --step-lead: clamp(1.25rem, 1.1rem + 0.7vw, 1.625rem);
   --step-head: clamp(2.6rem, 0.9rem + 5.4vw, 6.4rem);
-  --step-display: clamp(6.5rem, min(15.5vw, 25vh), 17rem);
+  --step-display: clamp(6.5rem, min(15.5vw, var(--vh) * 25), 17rem);
 
   --margin: clamp(16px, 2.2vw, 32px);
   --gap: clamp(16px, 1.6vw, 24px);
@@ -90,7 +92,7 @@ input, textarea { caret-color: var(--accent); }
 /* ---------- WebGL stage ---------- */
 .stage {
   /* the large viewport: the address bar sliding in and out on a phone never resizes it */
-  position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: 100lvh; z-index: 0;
+  position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: max(100lvh, var(--lvh) * 100); z-index: 0;
   display: block; transition: opacity 400ms ease;
 }
 .stage.is-off { opacity: 0; visibility: hidden; }
@@ -150,9 +152,9 @@ main, .foot { position: relative; z-index: 1; }
 
 /* ---------- hero ---------- */
 .hero {
-  min-height: 100svh;
-  display: grid; grid-template-rows: 1fr auto; row-gap: clamp(28px, 5vh, 56px);
-  padding: clamp(88px, 13vh, 150px) var(--margin) clamp(28px, 6vh, 64px);
+  min-height: calc(var(--vh) * 100);
+  display: grid; grid-template-rows: 1fr auto; row-gap: clamp(28px, var(--vh) * 5, 56px);
+  padding: clamp(88px, var(--vh) * 13, 150px) var(--margin) clamp(28px, var(--vh) * 6, 64px);
 }
 .hero-title {
   font-family: var(--display); font-weight: 800; text-transform: uppercase;
@@ -187,10 +189,10 @@ main, .foot { position: relative; z-index: 1; }
 @keyframes rise { to { opacity: 1; transform: none; } }
 
 /* ---------- the game ---------- */
-.game { height: 680vh; }
+.game { height: calc(var(--vh) * 680); }
 /* sideways swipes over the board spin it; up and down still scroll, pinch still zooms */
 .hero, .game { touch-action: pan-y pinch-zoom; }
-.game-pin { position: sticky; isolation: isolate; top: 0; height: 100svh; display: flex; align-items: center; padding: 0 var(--margin); overflow: hidden; }
+.game-pin { position: sticky; isolation: isolate; top: 0; height: calc(var(--vh) * 100); display: flex; align-items: center; padding: 0 var(--margin); overflow: hidden; }
 .readout { width: min(34vw, 500px); display: grid; gap: 22px; }
 .move {
   font-family: var(--display); font-weight: 800; font-size: var(--step-head);
@@ -251,7 +253,7 @@ main, .foot { position: relative; z-index: 1; }
 @media (hover: none), (pointer: coarse) { .cursor, .sound-pill { display: none; } }
 [data-cursor] { cursor: pointer; }
 
-.fx { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: 100lvh; z-index: 24; pointer-events: none; }
+.fx { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: max(100lvh, var(--lvh) * 100); z-index: 24; pointer-events: none; }
 html.is-grabbing, html.is-grabbing * { cursor: grabbing !important; user-select: none; }
 .hero-title .hc { display: inline-block; will-change: transform; }
 .hero-title [data-line] { cursor: pointer; }
@@ -419,14 +421,14 @@ html.is-grabbing, html.is-grabbing * { cursor: grabbing !important; user-select:
 
 /* ---------- contact ---------- */
 .contact {
-  min-height: 100svh; background: var(--ink); color: var(--bg);
+  min-height: calc(var(--vh) * 100); background: var(--ink); color: var(--bg);
   display: grid; grid-template-rows: auto 1fr auto; gap: 40px;
-  padding: clamp(96px, 12vh, 140px) var(--margin) 28px;
+  padding: clamp(96px, var(--vh) * 12, 140px) var(--margin) 28px;
 }
 .contact-lead { font-size: var(--step-lead); font-weight: 400; line-height: 1.3; max-width: 22ch; }
 .email {
   align-self: end; justify-self: start; display: block; width: 100%;
-  text-decoration: none; padding-bottom: 6vh;
+  text-decoration: none; padding-bottom: calc(var(--vh) * 6);
 }
 .email-text {
   display: inline-block; white-space: nowrap;
@@ -471,7 +473,7 @@ html.is-grabbing, html.is-grabbing * { cursor: grabbing !important; user-select:
 @media (max-height: 560px) and (min-width: 561px) {
   .readout { gap: 10px; padding-top: 48px; }
   .movelist, .caption { display: none; }
-  .move { font-size: clamp(2.2rem, 13vh, 4rem); }
+  .move { font-size: clamp(2.2rem, var(--vh) * 13, 4rem); }
   .note { font-size: 1.05rem; min-height: 0; }
   .hero { row-gap: 20px; }
 }
@@ -518,7 +520,7 @@ html.is-grabbing, html.is-grabbing * { cursor: grabbing !important; user-select:
   .lineup td:first-child { grid-column: 1 / -1; font-size: 1.375rem; color: var(--ink); }
   .lineup td:nth-child(3) { display: none; }
   .lineup .group th { padding: 48px 0 14px; font-size: 1.375rem; }
-  .contact { min-height: 86svh; }
+  .contact { min-height: calc(var(--vh) * 86); }
   .email-text { font-size: 11.5vw; white-space: normal; }
   .email-text .at { display: block; }
   .contact-foot { flex-direction: column; }

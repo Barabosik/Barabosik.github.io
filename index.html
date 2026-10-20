@@ -33,6 +33,17 @@
           history.scrollRestoration = 'manual';
         }
       } catch (e) {}
+      // one steady screen height for the layout. A phone's toolbar sliding in and out resizes the page (Firefox on
+      // iPhone does it outright), and every section sized in vh went with it: the 680vh board alone moved everything
+      // below it by ~500px. On a phone it changes only with the width (a rotation); with a mouse, on every resize
+      var fine = matchMedia('(hover: hover) and (pointer: fine)').matches, vw = 0, tall = 0;
+      function vh() {
+        var w = d.clientWidth, h = innerHeight;
+        if (w !== vw || fine) { vw = w; tall = 0; d.style.setProperty('--vh', h / 100 + 'px'); }
+        if (h > tall) { tall = h; d.style.setProperty('--lvh', h / 100 + 'px'); }   // the fixed canvases: the tallest seen
+      }
+      vh();
+      addEventListener('resize', vh);
     })();
   </script>
   <link rel="stylesheet" href="/src/style.css">
