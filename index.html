@@ -153,13 +153,16 @@
           </div>
         </div>
         <figure class="shot shot-compare" data-shot>
-          <div class="compare" data-compare data-cursor="Drag">
+          <div class="compare" data-compare>
             <img src="/img/p3n-after.webp" width="1440" height="900" alt="p3n.si after the redesign: a short sans-serif headline, Find the AI in any text, with Try it free and Self-host from GitHub buttons, next to the AI detection tool." loading="lazy">
-            <img class="compare-before" src="/img/p3n-before.webp" width="1440" height="900" alt="p3n.si before: a three-line serif headline and a list of four arrow points, next to the same AI detection tool." loading="lazy">
-            <span class="compare-tag is-before" aria-hidden="true">Before</span>
             <span class="compare-tag is-after" aria-hidden="true">After</span>
-            <input type="range" min="0" max="100" value="50" aria-label="Compare the page before and after the redesign">
-            <span class="compare-handle" aria-hidden="true"></span>
+            <div class="compare-before">
+              <img src="/img/p3n-before.webp" width="1440" height="900" alt="p3n.si before: a three-line serif headline and a list of four arrow points, next to the same AI detection tool." loading="lazy">
+              <span class="compare-tag is-before" aria-hidden="true">Before</span>
+            </div>
+            <input type="range" min="0" max="100" step="5" value="50" aria-label="Compare the page before and after the redesign">
+            <span class="compare-line" aria-hidden="true"></span>
+            <span class="compare-knob" aria-hidden="true"><span class="compare-disc"><i></i><i></i></span></span>
           </div>
         </figure>
       </article>

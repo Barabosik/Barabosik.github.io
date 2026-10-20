@@ -341,21 +341,43 @@ html.is-grabbing, html.is-grabbing * { cursor: grabbing !important; user-select:
 /* p3n.si: the old page and the new one under one handle; drag (or arrow keys) to move the line */
 .project-p3n .shot-compare { grid-column: 1 / span 7; grid-row: 1; }
 .project-p3n .project-text { grid-column: 9 / -1; grid-row: 1; align-self: center; }
-.compare { position: relative; --pos: 50%; touch-action: pan-y; }
-.compare img { display: block; }
-.compare .compare-before { position: absolute; inset: 0; height: 100%; clip-path: inset(0 calc(100% - var(--pos)) 0 0); }
-.compare input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize; touch-action: pan-y; }
-.compare-handle { position: absolute; top: 0; bottom: 0; left: var(--pos); width: 2px; margin-left: -1px; background: var(--accent); pointer-events: none; }
-.compare-handle::after {
-  content: ''; position: absolute; top: 50%; left: 50%; width: 44px; height: 44px; translate: -50% -50%; border-radius: 50%;
-  background: var(--accent) center / 22px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23161c1a' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6l-6 6 6 6M15 6l6 6-6 6'/%3E%3C/svg%3E");
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+.compare { position: relative; touch-action: pan-y; cursor: ew-resize; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+.compare img { display: block; pointer-events: none; -webkit-user-drag: none; }
+/* the old page lies over the new one; the script sets its clip, the line and the knob straight on each element */
+.compare-before { position: absolute; inset: 0; clip-path: inset(0 50% 0 0); }
+.compare-before img { width: 100%; height: 100%; }
+.compare input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; pointer-events: none; }
+.compare-line {
+  position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; margin-left: -1px; pointer-events: none;
+  background: var(--accent); box-shadow: 0 0 0 1px rgba(22, 28, 26, 0.12), 0 0 18px rgba(159, 199, 184, 0.35);
+  will-change: transform;
 }
-.compare input:focus-visible ~ .compare-handle::after { outline: 2px solid var(--accent); outline-offset: 4px; }
+.compare-knob { position: absolute; top: 50%; left: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; pointer-events: none; will-change: transform; }
+.compare.is-live .compare-line, .compare.is-live .compare-knob { left: 0; }
+.compare-disc {
+  position: absolute; inset: 0; border-radius: 50%; background: var(--accent);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.32), inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+  transition: scale 220ms var(--ease-out);
+}
+/* two chevrons that lean apart under the hand */
+.compare-disc i {
+  position: absolute; top: 50%; left: 50%; width: 8px; height: 8px; border: 0 solid var(--accent-ink);
+  rotate: 45deg; transition: translate 260ms var(--ease-out);
+}
+.compare-disc i:first-child { border-width: 0 0 2.5px 2.5px; translate: calc(-50% - 4px) -50%; }
+.compare-disc i:last-child { border-width: 2.5px 2.5px 0 0; translate: calc(-50% + 4px) -50%; }
+@media (hover: hover) and (pointer: fine) {
+  .compare:hover .compare-disc { scale: 1.06; }
+  .compare:hover .compare-disc i:first-child { translate: calc(-50% - 6px) -50%; }
+  .compare:hover .compare-disc i:last-child { translate: calc(-50% + 6px) -50%; }
+}
+/* pressed: in quickly, out at the normal pace */
+.compare.is-dragging .compare-disc { scale: 0.94; transition-duration: var(--t-press); }
+.compare input:focus-visible ~ .compare-knob .compare-disc { outline: 2px solid var(--ink); outline-offset: 4px; }
 .compare-tag {
   position: absolute; top: 14px; padding: 6px 10px; pointer-events: none;
   font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.04em; text-transform: uppercase;
-  background: rgba(22, 28, 26, 0.82); color: var(--ink); transition: opacity 200ms ease;
+  background: rgba(22, 28, 26, 0.82); color: var(--ink);
 }
 .compare-tag.is-before { left: 14px; }
 .compare-tag.is-after { right: 14px; color: var(--accent); }

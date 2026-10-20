@@ -548,20 +548,80 @@ if (fineHover) [['.project-chess', 'Open'], ['.project-tether', 'Play']].forEach
   });
 });
 
-// p3n.si before and after: the line follows the range input; the first time it is on screen it sweeps once, so it reads as something to drag
+// p3n.si before and after: the old page lies over the new one, cut at the line. The line is a spring that chases
+// its target, close to 1:1 under a drag and a soft glide to a click, so it never jumps. Each label rides on its own
+// page and slides away with it. The range input underneath keeps arrow keys and screen readers working
 $$('[data-compare]').forEach((box) => {
+  const before = box.querySelector('.compare-before');
+  const line = box.querySelector('.compare-line');
+  const knob = box.querySelector('.compare-knob');
   const input = box.querySelector('input');
-  const set = (v) => box.style.setProperty('--pos', `${v}%`);
-  let hint = null;
-  input.addEventListener('input', () => { hint?.kill(); set(input.value); });
+  const GLIDE = [170, 22];     // stiffness, damping: settles in about half a second with the faintest overshoot
+  const FOLLOW = [1400, 75];   // critically damped and stiff: stays under the pointer
+  const s = { x: 0.5, v: 0, to: 0.5, k: GLIDE[0], c: GLIDE[1] };   // fraction of the width
+  let w = box.clientWidth, drag = null, hint = null, running = false;
+  const draw = () => {
+    const px = s.x * w;
+    before.style.clipPath = `inset(0 ${(w - px).toFixed(2)}px 0 0)`;
+    line.style.transform = `translate3d(${px.toFixed(2)}px,0,0)`;
+    // the knob stops short of the edges so it is never cut off; the line goes all the way
+    knob.style.transform = `translate3d(${gsap.utils.clamp(30, w - 30, px).toFixed(2)}px,0,0)`;
+  };
+  const step = (_, dtMs) => {
+    const h = Math.min(dtMs, 34) / 1000 / 4;   // four small steps a frame keep the stiff spring steady
+    for (let i = 0; i < 4; i++) { s.v += (s.k * (s.to - s.x) - s.c * s.v) * h; s.x += s.v * h; }
+    if (Math.abs(s.to - s.x) < 0.0004 && Math.abs(s.v) < 0.002) { s.x = s.to; s.v = 0; gsap.ticker.remove(step); running = false; }
+    draw();
+  };
+  const to = (f, [k, c]) => {
+    s.to = gsap.utils.clamp(0, 1, f); s.k = k; s.c = c;
+    if (reduced) { s.x = s.to; s.v = 0; draw(); return; }
+    if (!running) { running = true; gsap.ticker.add(step); }
+  };
+  const frac = (e) => { const r = box.getBoundingClientRect(); return (e.clientX - r.left) / r.width; };
+  const grab = (e) => { box.setPointerCapture(e.pointerId); box.classList.add('is-dragging'); };
+  box.addEventListener('pointerdown', (e) => {
+    if (drag || !e.isPrimary || e.button !== 0) return;   // one pointer at a time: a second finger never yanks the line
+    hint?.kill();
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), on: e.pointerType === 'mouse' };
+    if (drag.on) { e.preventDefault(); grab(e); to(frac(e), GLIDE); }
+  });
+  box.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    if (!drag.on) {
+      // a finger: only a sideways swipe takes the line, up and down stays a scroll
+      const dx = Math.abs(e.clientX - drag.x), dy = Math.abs(e.clientY - drag.y);
+      if (dx < 6 || dx < dy) return;
+      drag.on = true;
+      grab(e);
+    }
+    to(frac(e), FOLLOW);
+  });
+  const end = (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    // a quick tap on a touch screen sends the line there too
+    if (!drag.on && e.type === 'pointerup' && performance.now() - drag.t < 350) to(frac(e), GLIDE);
+    drag = null;
+    box.classList.remove('is-dragging');
+    input.value = Math.round(s.to * 100);
+  };
+  box.addEventListener('pointerup', end);
+  box.addEventListener('pointercancel', end);
+  // keys move it at once (a spring this stiff reads as instant): a key press should never wait on an animation
+  input.addEventListener('input', () => { hint?.kill(); to(Number(input.value) / 100, FOLLOW); });
+  new ResizeObserver(() => { w = box.clientWidth; draw(); }).observe(box);
+  draw();
+  box.classList.add('is-live');
   if (reduced) return;
-  const at = { v: 50 };
+  // the first time it is on screen the line sweeps once and comes back, so it reads as something to drag
   ScrollTrigger.create({
     trigger: box, start: 'top 70%', once: true,
     onEnter: () => {
-      hint = gsap.timeline({ delay: 0.9, onUpdate: () => set(at.v) })
-        .to(at, { v: 30, duration: 0.7, ease: 'power2.inOut' })
-        .to(at, { v: 50, duration: 0.8, ease: 'power2.inOut' });
+      if (drag) return;
+      const p = { x: s.x };
+      hint = gsap.timeline({ delay: 0.8, onUpdate: () => { s.x = s.to = p.x; s.v = 0; draw(); } })
+        .to(p, { x: 0.33, duration: 0.9, ease: 'power3.inOut' })
+        .to(p, { x: 0.5, duration: 1.0, ease: 'power3.inOut' });
     },
   });
 });
