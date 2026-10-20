@@ -28,13 +28,28 @@ let boardWarmed = () => {};
 const boardWarm = new Promise((r) => { boardWarmed = r; });
 
 // ---------- smooth scroll on GSAP's clock, so scroll, tweens and WebGL share a frame ----------
+// Mouse and trackpad only. Lenis never smooths a finger, but its touch listeners block, so a phone waited on the
+// busy main thread before every swipe; Firefox then held the scroll and let it jump. Phones scroll natively
 let lenis = null;
-if (!reduced) {
+if (!reduced && fineHover) {
   lenis = new Lenis({ autoRaf: false, anchors: true, lerp: 0.1 });
   lenis.on('scroll', ScrollTrigger.update);
   gsap.ticker.add((t) => lenis.raf(t * 1000));
   gsap.ticker.lagSmoothing(0);
 }
+
+if (!lenis && !reduced) {
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a[href^="#"]');
+    const to = a && a.hash.length > 1 && document.querySelector(a.hash);
+    if (!to) return;
+    e.preventDefault();
+    to.scrollIntoView({ behavior: 'smooth' });
+  });
+}
+const holdTouch = (e) => e.cancelable && e.preventDefault();
+const pauseScroll = () => (lenis ? lenis.stop() : window.addEventListener('touchmove', holdTouch, { passive: false }));
+const resumeScroll = () => (lenis ? lenis.start() : window.removeEventListener('touchmove', holdTouch, { passive: false }));
 
 // ---------- move list ----------
 const movelist = $('.movelist');
@@ -662,7 +677,7 @@ $$('[data-compare]').forEach((box) => {
 });
 
 // images bend a little with the speed of the scroll, and settle when it stops
-if (lenis && !reduced && fineHover) {
+if (lenis) {
   const benders = $$('[data-shot] img').map((img) => gsap.quickTo(img, 'skewY', { duration: 0.6, ease: 'power3.out' }));
   lenis.on('scroll', ({ velocity }) => {
     const k = gsap.utils.clamp(-3.2, 3.2, velocity * 0.12);
@@ -803,7 +818,7 @@ console.log('Six secrets on this page. Here is one, in base64: dHlwZSBlNCBvbiB0a
 // letters lean back against the motion; on landing they squash and wobble like jelly, one after another.
 async function playIntro() {
   const html = document.documentElement;
-  lenis?.stop();
+  pauseScroll();
   await Promise.race([document.fonts.load('800 100px "Big Shoulders"'), new Promise((r) => setTimeout(r, 800))]);
   const h1 = $('.hero-title');
   const hr = h1.getBoundingClientRect();
@@ -831,7 +846,7 @@ async function playIntro() {
     .to(chars, { yPercent: 0, duration: 1.2, ease: 'power3.out', stagger: { each: 0.025, from } }, 0.8)
     .add(() => { html.classList.add('intro-done'); introDone(); }, 0.7)
     .add(() => {
-      lenis?.start();
+      resumeScroll();
       gsap.set(h1, { clearProps: 'transform' });
       lettersLive = true;
     }, 1.6)
