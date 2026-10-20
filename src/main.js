@@ -560,10 +560,10 @@ $$('[data-compare]').forEach((box) => {
   const knob = box.querySelector('.compare-knob');
   const input = box.querySelector('input');
   // springs as [stiffness, damping]; damping / (2 * sqrt(stiffness)) is how much it resists overshoot (1 = none)
-  const HOLD = [380, 33];      // under the hand: trails by a few frames, a touch of give
+  const HOLD = [2500, 100];    // under the hand: stays within a few frames of it, never sloshes past
   const JUMP = [260, 26];      // a click: quick off the mark, settles with the faintest overshoot
-  const COAST = [120, 22];     // after a flick: no overshoot, a long soft stop
-  const BOUNCE = [180, 15];    // thrown into an edge: one small rebound
+  const COAST = [500, 47];     // after letting go: catches up and brakes firmly, no overshoot
+  const BOUNCE = [240, 24];    // thrown into an edge: one small rebound
   const HINT = [90, 16];       // the first-view sweep, slow and soft
   const s = { x: 0.5, v: 0, to: 0.5, k: JUMP[0], c: JUMP[1] };   // position and speed as fractions of the width
   let w = box.clientWidth, drag = null, hint = null, running = false;
@@ -625,9 +625,10 @@ $$('[data-compare]').forEach((box) => {
   const end = (e) => {
     if (!drag || e.pointerId !== drag.id) return;
     if (drag.moved) {
-      // let go: the line keeps the hand's speed and coasts to where that speed would carry it, a fifth of a second on
+      // let go: only a real flick carries the line on, and never more than 3% of the width
       const at = drag.trail.length ? drag.trail[drag.trail.length - 1].f : s.x;
-      const land = at + speed() * 0.2;
+      const v = speed();
+      const land = at + (Math.abs(v) > 1.2 ? gsap.utils.clamp(-0.03, 0.03, v * 0.03) : 0);
       const clamped = gsap.utils.clamp(0, 1, land);
       to(clamped, clamped !== land || at < 0 || at > 1 ? BOUNCE : COAST);
     } else if (!drag.on && e.type === 'pointerup' && performance.now() - drag.t < 350) {
