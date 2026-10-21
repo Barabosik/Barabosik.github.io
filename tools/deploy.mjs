@@ -12,7 +12,7 @@ const git = (args, cwd) => execFileSync('git', args, { cwd, stdio: ['ignore', 'p
 const name = git(['config', 'user.name']);
 const email = git(['config', 'user.email']);
 const sha = git(['rev-parse', '--short', 'HEAD']);
-if (git(['status', '--porcelain', '--', 'src', 'public', 'index.html', 'package.json'])) {
+if (git(['status', '--porcelain', '--', 'src', 'public', 'index.html', 'p3n', 'vite.config.js', 'package.json'])) {
   console.error('Uncommitted changes in the site: commit them first, so main matches a commit on source.');
   process.exit(1);
 }

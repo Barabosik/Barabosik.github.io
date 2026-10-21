@@ -36,7 +36,9 @@ src/
   fx.js            click particles
   style.css
   assets/pieces.glb  chess pieces made in Blender (see tools/pieces)
-public/            static files copied as-is: fonts, images, og.jpg, robots, sitemap, 404
+p3n/               p3n's install page at /p3n/ (its own look: p3n's palette, Inter, light and dark)
+public/            static files copied as-is: fonts, images, og.jpg, robots, sitemap, 404; public/p3n/ for the p3n page
+vite.config.js     the two pages Vite builds
 tools/
   deploy.mjs       publishes dist/ to the main branch
   pieces/          Blender script that builds src/assets/pieces.glb

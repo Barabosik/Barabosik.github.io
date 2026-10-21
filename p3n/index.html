@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Install p3n in Chrome, Word and Excel</title>
+  <meta name="description" content="Find the AI in any text, then rewrite it, in the app you're writing in. p3n for Chrome, Edge, Brave, Word and Excel; Firefox and Google Docs coming soon. Free to try, no account needed.">
+  <link rel="canonical" href="https://nikita-andreiev.com/p3n/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="p3n">
+  <meta property="og:url" content="https://nikita-andreiev.com/p3n/">
+  <meta property="og:title" content="p3n, wherever you write">
+  <meta property="og:description" content="Find the AI in any text, then rewrite it, in Chrome, Word and Excel. Firefox and Google Docs coming soon.">
+  <meta property="og:image" content="https://nikita-andreiev.com/p3n/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="p3n, wherever you write: Chrome, Edge, Brave, Word and Excel, with Firefox and Google Docs coming soon.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#fbfaf7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#16130f" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="/p3n/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/p3n/apple-touch-icon.png">
+  <link rel="preload" href="/p3n/inter.woff2" as="font" type="font/woff2" crossorigin>
+  <script>
+    // System, Light or Dark, as on p3n.si. The choice lives in localStorage['p3n-theme'] (not 'theme': the other pages
+    // on this domain share the storage); System follows the OS. Runs before the first paint, so a stored choice never
+    // flashes the other theme.
+    (function () {
+      var root = document.documentElement, os = matchMedia('(prefers-color-scheme: dark)'), page = { light: '#fbfaf7', dark: '#16130f' };
+      function stored() { try { return localStorage.getItem('p3n-theme'); } catch (e) { return null; } }
+      function apply() {
+        var choice = stored() === 'light' || stored() === 'dark' ? stored() : 'system';
+        choice === 'system' ? root.removeAttribute('data-theme') : root.setAttribute('data-theme', choice);
+        document.querySelectorAll('meta[name=theme-color]').forEach(function (m) {
+          m.content = page[choice === 'system' ? (m.media.indexOf('dark') > -1 ? 'dark' : 'light') : choice];
+        });
+        document.querySelectorAll('[data-theme-set]').forEach(function (b) { b.setAttribute('aria-checked', b.dataset.themeSet === choice); });
+      }
+      apply();
+      os.addEventListener('change', apply);
+      addEventListener('storage', function (e) { if (e.key === 'p3n-theme') apply(); });
+      document.addEventListener('DOMContentLoaded', apply);
+      document.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-theme-set]');
+        if (!b) return;
+        try { b.dataset.themeSet === 'system' ? localStorage.removeItem('p3n-theme') : localStorage.setItem('p3n-theme', b.dataset.themeSet); } catch (err) {}
+        apply();
+      });
+    })();
+  </script>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <a class="skip" href="#apps">Skip to the apps</a>
+
+  <header class="bar">
+    <div class="wrap bar-in">
+      <a class="logo" href="/p3n/" aria-label="p3n apps, home">
+        <img class="pen pen-light" src="/p3n/logo-96.png" width="40" height="40" alt="">
+        <img class="pen pen-dark" src="/p3n/logo-96-dark.png" width="40" height="40" alt="">
+        <span class="mark">p<span>3</span>n</span>
+      </a>
+      <nav aria-label="p3n">
+        <a href="https://p3n.si/">p3n.si</a>
+        <a href="https://p3n.si/docs">Docs</a>
+        <a href="https://github.com/zdresearch/p3n">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap hero-in">
+        <div class="hero-copy">
+          <h1>p3n, wherever you write</h1>
+          <p class="lead">Find the AI in any text, then rewrite it, right in the app you're writing in: your browser, Word and Excel, and soon Google Docs.</p>
+          <div class="actions">
+            <a class="btn btn-accent" href="https://chromewebstore.google.com/detail/bingopgkcgafmnpkoeckijkcbnfmchnh" data-hero-install>Add to Chrome</a>
+            <a class="btn btn-ghost" href="#apps">All apps</a>
+          </div>
+          <p class="note" data-firefox-note hidden>On Firefox? Its version is in review at Firefox Add-ons, coming soon.</p>
+          <p class="note">Free for 10 checks or rewrites an hour. No account needed.</p>
+        </div>
+
+        <figure class="sample" data-ui>
+          <div class="sample-part">
+            <p class="sample-head"><span>Your text</span><b>95% AI</b></p>
+            <span class="meter is-ai" aria-hidden="true"><i style="width: 95%"></i></span>
+            <p class="sample-before">Ultimately, this seamless transition unlocks a rich tapestry of possibilities for teams of all sizes, empowering everyone to thrive in an ever-evolving landscape.</p>
+          </div>
+          <div class="sample-part sample-after">
+            <p class="sample-head"><span>p3n's rewrite</span><b>1% AI</b></p>
+            <span class="meter" aria-hidden="true"><i style="width: 1%"></i></span>
+            <p>This transition helps teams of all sizes.</p>
+          </div>
+          <figcaption>A real rewrite by p3n: the filler goes, the fact stays.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="apps" id="apps" aria-labelledby="apps-title">
+      <div class="wrap">
+        <div class="apps-head">
+          <h2 id="apps-title">Pick the app you write in</h2>
+          <p>Each one checks the text you select, shows the sentences that give it away, and rewrites it in place.</p>
+        </div>
+
+        <article class="app" id="browser" aria-labelledby="browser-title">
+          <div class="app-text">
+            <h3 id="browser-title">Chrome, Edge and Brave</h3>
+            <p>Select text on any page, right-click and pick p3n, then Check for AI. The score, the reasons and a rewrite open in the side panel, and Replace puts the rewrite where your text was.</p>
+            <div class="actions">
+              <a class="btn btn-accent" href="https://chromewebstore.google.com/detail/bingopgkcgafmnpkoeckijkcbnfmchnh">Add to Chrome</a>
+            </div>
+            <p class="note">From the Chrome Web Store. Edge and Brave install it from there too.</p>
+
+            <div class="also" id="firefox">
+              <h4>Firefox</h4>
+              <p class="status" data-firefox-status><b>In review, coming soon.</b> The same extension, in Firefox's sidebar, for Firefox 140 or later.</p>
+              <div class="actions" data-firefox-install hidden>
+                <a class="btn btn-ink" href="#firefox">Add to Firefox</a>
+              </div>
+            </div>
+          </div>
+          <figure class="app-shot">
+            <img src="/p3n/browser.webp" width="880" height="660" loading="lazy" alt="p3n's side panel in Chrome next to a blog post: Likely AI-written, 94%, with the two sentences that read as AI.">
+          </figure>
+        </article>
+
+        <article class="app" id="office" aria-labelledby="office-title">
+          <div class="app-text">
+            <h3 id="office-title">Word and Excel</h3>
+            <p>Select text in Word, or cells in Excel, and click Check for AI on the Home tab. Replace puts the rewrite back with each paragraph's style, and Ctrl+Z undoes it.</p>
+            <div class="actions">
+              <a class="btn btn-ink" href="https://nikita-andreiev.com/p3n-office-addin/manifest.xml" download="p3n-manifest.xml">Download the manifest</a>
+            </div>
+            <p class="note">p3n isn't in Microsoft's add-in store yet, so you add it once from this file. It loads from the web after that, so it updates by itself.</p>
+          </div>
+          <figure class="app-shot">
+            <img src="/p3n/word.webp" width="880" height="660" loading="lazy" alt="p3n in Word: the Check for AI button on the Home tab, and the p3n pane after a rewrite, No longer reads as AI, 95% to 1%, with the rewrite replaced in the document.">
+          </figure>
+          <dl class="steps">
+            <div>
+              <dt>On the web</dt>
+              <dd>Open a document, then Home › Add-ins › More Settings › Upload My Add-in, and upload the file. This browser keeps it. <a href="https://learn.microsoft.com/office/dev/add-ins/testing/sideload-office-add-ins-for-testing#manually-sideload-an-add-in-to-office-on-the-web">Microsoft's steps</a></dd>
+            </div>
+            <div>
+              <dt>Windows</dt>
+              <dd>Share a folder and put the file in it. In Word or Excel, add the folder's network path under File › Options › Trust Center › Trust Center Settings › Trusted Add-in Catalogs, tick Show in Menu and restart. Then Home › Add-ins › Advanced › Shared Folder › p3n. <a href="https://learn.microsoft.com/office/dev/add-ins/testing/create-a-network-shared-folder-catalog-for-task-pane-and-content-add-ins">Microsoft's steps</a></dd>
+            </div>
+            <div>
+              <dt>Mac</dt>
+              <dd>Copy the file to <code>~/Library/Containers/com.microsoft.Word/Data/Documents/wef</code> (for Excel, <code>com.microsoft.Excel</code>; make the <code>wef</code> folder if it's missing). Restart the app, then Home › Add-ins › p3n. <a href="https://learn.microsoft.com/office/dev/add-ins/testing/sideload-an-office-add-in-on-mac">Microsoft's steps</a></dd>
+            </div>
+          </dl>
+        </article>
+
+        <article class="app" id="docs" aria-labelledby="docs-title">
+          <div class="app-text">
+            <h3 id="docs-title">Google Docs</h3>
+            <p>Select text in a doc and open Extensions › p3n. Check and rewrite in the sidebar; Replace selection keeps headings, lists and formatting, and one Ctrl+Z undoes it.</p>
+            <p class="status"><b>Coming soon.</b> The add-on is in Google's review for the Workspace Marketplace.</p>
+          </div>
+          <figure class="app-shot">
+            <img src="/p3n/docs.webp" width="880" height="660" loading="lazy" alt="The p3n sidebar in Google Docs: AI-written, then humanized, 97% likely AI, with the sentences that read as AI.">
+          </figure>
+        </article>
+      </div>
+    </section>
+
+    <section class="facts" aria-label="Privacy, price and source">
+      <div class="wrap facts-in">
+        <p class="statement">Your text goes to api.p3n.si only when you click. No history, no analytics.</p>
+        <div class="fact">
+          <h2>Free to start</h2>
+          <p>10 checks or rewrites an hour without an account, up to 5,000 characters each. For more, make an API key at <a href="https://p3n.si/">p3n.si</a> and paste it into the app.</p>
+        </div>
+        <div class="fact">
+          <h2>Open source</h2>
+          <p>Every app is MIT-licensed on GitHub: the <a href="https://github.com/Barabosik/p3n-chrome-extension">browser extension</a>, the <a href="https://github.com/Barabosik/p3n-office-addin">Word and Excel add-in</a> and the <a href="https://github.com/Barabosik/p3n-google-docs-addon">Google Docs add-on</a>.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="more" aria-labelledby="more-title">
+      <div class="wrap more-in">
+        <h2 id="more-title">The rest of p3n</h2>
+        <ul class="links">
+          <li>
+            <a href="https://p3n.si/">
+              <b>p3n.si</b>
+              <span>The hosted API behind the apps. Try AI detection free on the home page.</span>
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h10m-4-4 4 4-4 4"/></svg>
+            </a>
+          </li>
+          <li>
+            <a href="https://p3n.si/docs">
+              <b>API docs</b>
+              <span>Call the same skills from your own code, with a key from your account.</span>
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h10m-4-4 4 4-4 4"/></svg>
+            </a>
+          </li>
+          <li>
+            <a href="https://github.com/zdresearch/p3n">
+              <b>Skills on GitHub</b>
+              <span>The open-source writing skills: AI Detection, Deslop, Humanize and Editorial.</span>
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h10m-4-4 4 4-4 4"/></svg>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap foot-in">
+      <p>The p3n apps are made by <a href="/">Nikita Andreiev</a>.</p>
+      <div class="theme" role="radiogroup" aria-label="Theme">
+        <button type="button" data-theme-set="system" role="radio" aria-checked="true" aria-label="System" title="System">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.75" y="3.75" width="14.5" height="10" rx="1.5"/><path d="M7 16.75h6M10 13.75v3"/></svg>
+        </button>
+        <button type="button" data-theme-set="light" role="radio" aria-checked="false" aria-label="Light" title="Light">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3.25"/><path d="M10 2.5v1.5M10 16v1.5M2.5 10H4M16 10h1.5M4.7 4.7l1.05 1.05M14.25 14.25l1.05 1.05M4.7 15.3l1.05-1.05M14.25 5.75l1.05-1.05"/></svg>
+        </button>
+        <button type="button" data-theme-set="dark" role="radio" aria-checked="false" aria-label="Dark" title="Dark">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.25 12.1A6.5 6.5 0 0 1 7.9 3.75a6.5 6.5 0 1 0 8.35 8.35z"/></svg>
+        </button>
+      </div>
+    </div>
+  </footer>
+  <script>
+    // Firefox Add-ons is still reviewing p3n. Once the listing is live, set its URL here: the Firefox row gets an
+    // Add to Firefox button, and visitors on Firefox get it as the page's main button.
+    var FIREFOX_URL = ''; // 'https://addons.mozilla.org/firefox/addon/p3n/'
+
+    (function () {
+      var onFirefox = /\bFirefox\//.test(navigator.userAgent);
+      if (FIREFOX_URL) {
+        var install = document.querySelector('[data-firefox-install]');
+        install.querySelector('a').href = FIREFOX_URL;
+        install.hidden = false;
+        document.querySelector('[data-firefox-status]').hidden = true;
+      }
+      if (onFirefox && FIREFOX_URL) {
+        var hero = document.querySelector('[data-hero-install]');
+        hero.href = FIREFOX_URL;
+        hero.textContent = 'Add to Firefox';
+      } else if (onFirefox) {
+        document.querySelector('[data-firefox-note]').hidden = false;
+      }
+    })();
+  </script>
+</body>
+</html>
