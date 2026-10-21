@@ -171,7 +171,9 @@ code { font: 14px / 1.5 var(--mono); background: var(--tint); border-radius: 4px
 .steps { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; padding: 40px 48px 48px; }
 .steps dt { font-weight: 600; }
 .steps dd { margin-top: 6px; font-size: 16px; line-height: 1.6; }
-.steps a, .fact a, .foot a { color: var(--accent-ink); }
+.steps dd.get { margin-top: 12px; }
+.steps .btn { min-height: 40px; padding: 0 16px; font-size: 15px; }
+.steps a:not(.btn), .fact a, .foot a { color: var(--accent-ink); }
 
 /* ---------- privacy, price, source ---------- */
 .facts { padding: 112px 0; }
