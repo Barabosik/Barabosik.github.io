@@ -25,7 +25,7 @@ try {
   git(['add', '-A'], dir);
   git(['-c', `user.name=${name}`, '-c', `user.email=${email}`, 'commit', '-q', '-m', `Deploy ${sha}`], dir);
   git(['push', '-q', '-f', REMOTE, 'main'], dir);
-  console.log(`Deployed ${sha} to https://barabosik.github.io (live in about a minute).`);
+  console.log(`Deployed ${sha} to https://nikita-andreiev.com (live in about a minute).`);
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }

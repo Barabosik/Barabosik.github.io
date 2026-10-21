@@ -1,6 +1,6 @@
-# barabosik.github.io
+# nikita-andreiev.com
 
-Nikita Andreiev's portfolio. A 3D chess board plays Morphy's Opera Game (Paris, 1858) as you scroll, then the projects, experience and contact. Live at https://barabosik.github.io.
+Nikita Andreiev's portfolio. A 3D chess board plays Morphy's Opera Game (Paris, 1858) as you scroll, then the projects, experience and contact. Live at https://nikita-andreiev.com (also reachable as https://barabosik.github.io, which redirects).
 
 ## Stack
 
