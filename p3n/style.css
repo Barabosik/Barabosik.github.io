@@ -1,6 +1,6 @@
 /* p3n's install page. p3n's own look, not the portfolio's: Inter, warm paper and ink, the red-brown accent only on
    the main buttons, the wordmark's 3 and the AI scores. Colours are p3n's palette (D45), light and dark in one place:
-   System follows the OS, Light and Dark come from the theme switch (data-theme on <html>). */
+   the OS decides until the visitor flips the sun/moon button (data-theme on <html>). */
 
 @font-face {
   font-family: 'Inter';
@@ -39,6 +39,7 @@
 }
 :root[data-theme='light'] { color-scheme: light; }
 :root[data-theme='dark'] { color-scheme: dark; }
+.theme-flip *, .theme-flip *::before, .theme-flip *::after { transition: none !important; }
 
 /* pictures that carry their own light ground: the pen's dark twin, and the light screenshots a step dimmer */
 .pen-dark { display: none; }
@@ -46,10 +47,14 @@
   :root:not([data-theme='light']) .pen-light { display: none; }
   :root:not([data-theme='light']) .pen-dark { display: block; }
   :root:not([data-theme='light']) .app-shot img { filter: brightness(0.9); }
+  :root:not([data-theme='light']) .theme-moon { display: none; }
+  :root:not([data-theme='light']) .theme-sun { display: block; }
 }
 :root[data-theme='dark'] .pen-light { display: none; }
 :root[data-theme='dark'] .pen-dark { display: block; }
 :root[data-theme='dark'] .app-shot img { filter: brightness(0.9); }
+:root[data-theme='dark'] .theme-moon { display: none; }
+:root[data-theme='dark'] .theme-sun { display: block; }
 
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -102,15 +107,16 @@ code { font: 14px / 1.5 var(--mono); background: var(--tint); border-radius: 4px
 .bar nav { margin-left: auto; display: flex; gap: 24px; font-size: var(--s-small); font-weight: 500; }
 .bar nav a { padding: 10px 0; white-space: nowrap; color: var(--muted); text-decoration: none; transition: color 150ms ease; }
 @media (hover: hover) { .bar nav a:hover { color: var(--ink); } }
-/* System, Light or Dark, top right like everywhere else */
-.theme { display: inline-flex; flex: none; gap: 2px; padding: 3px; border-radius: 999px; background: var(--tint); }
-.theme button {
-  display: inline-grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 999px;
-  background: none; color: var(--muted); cursor: pointer; transition: color 150ms ease, background-color 150ms ease;
+/* light or dark: one button, top right; it shows the theme a click switches to (moon while light, sun while dark) */
+.theme {
+  display: inline-grid; place-items: center; flex: none; width: 40px; height: 40px; margin-right: -8px; padding: 0;
+  border: 0; border-radius: 999px; background: none; color: var(--ink); cursor: pointer;
+  transition: background-color 150ms ease, transform 120ms var(--ease-out);
 }
-.theme button[aria-checked='true'] { background: var(--surface); color: var(--ink); }
-.theme svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-@media (hover: hover) { .theme button:hover { color: var(--ink); } }
+.theme:active { transform: scale(0.92); }
+.theme svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.theme-sun { display: none; }
+@media (hover: hover) { .theme:hover { background: var(--tint); } }
 
 /* ---------- hero: the promise, and a real before and after ---------- */
 .hero { padding: 64px 0 120px; }
@@ -210,8 +216,6 @@ code { font: 14px / 1.5 var(--mono); background: var(--tint); border-radius: 4px
   :root { --gutter: 16px; }
   .bar-in { height: 64px; gap: 14px; }
   .bar nav { gap: 14px; }
-  .theme button { width: 30px; height: 30px; }
-  .bar .nav-docs { display: none; } /* also in "The rest of p3n" */
   .hero { padding: 24px 0 72px; }
   .lead { font-size: 19px; }
   .sample { padding: 22px; gap: 24px; }
@@ -227,7 +231,6 @@ code { font: 14px / 1.5 var(--mono); background: var(--tint); border-radius: 4px
   .links span { grid-column: 1; grid-row: 2; }
   .links svg { grid-column: 2; grid-row: 1 / 3; }
 }
-@media (max-width: 350px) {
-  .bar .nav-github { display: none; }
-  .theme button { width: 28px; height: 28px; }
+@media (max-width: 359px) {
+  .bar .nav-docs { display: none; } /* also in "The rest of p3n" */
 }
