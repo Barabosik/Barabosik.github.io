@@ -561,7 +561,7 @@ if (cursor && fineHover && !reduced) {
 }
 
 // project images open the project, and say so under the cursor (not on touch: a swipe could land as a tap)
-if (fineHover) [['.project-chess', 'Open'], ['.project-tether', 'Play']].forEach(([sel, word]) => {
+if (fineHover) [['.project-chess', 'Open'], ['.project-p3n-ext', 'Install'], ['.project-tether', 'Play']].forEach(([sel, word]) => {
   const href = $(`${sel} .button`)?.href;
   $$(`${sel} [data-shot]`).forEach((fig) => {
     fig.dataset.cursor = word;
