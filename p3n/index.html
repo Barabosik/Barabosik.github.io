@@ -63,9 +63,20 @@
       </a>
       <nav aria-label="p3n">
         <a href="https://p3n.si/">p3n.si</a>
-        <a href="https://p3n.si/docs">Docs</a>
-        <a href="https://github.com/zdresearch/p3n">GitHub</a>
+        <a class="nav-docs" href="https://p3n.si/docs">Docs</a>
+        <a class="nav-github" href="https://github.com/zdresearch/p3n">GitHub</a>
       </nav>
+      <div class="theme" role="radiogroup" aria-label="Theme">
+        <button type="button" data-theme-set="system" role="radio" aria-checked="true" aria-label="System" title="System">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.75" y="3.75" width="14.5" height="10" rx="1.5"/><path d="M7 16.75h6M10 13.75v3"/></svg>
+        </button>
+        <button type="button" data-theme-set="light" role="radio" aria-checked="false" aria-label="Light" title="Light">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3.25"/><path d="M10 2.5v1.5M10 16v1.5M2.5 10H4M16 10h1.5M4.7 4.7l1.05 1.05M14.25 14.25l1.05 1.05M4.7 15.3l1.05-1.05M14.25 5.75l1.05-1.05"/></svg>
+        </button>
+        <button type="button" data-theme-set="dark" role="radio" aria-checked="false" aria-label="Dark" title="Dark">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.25 12.1A6.5 6.5 0 0 1 7.9 3.75a6.5 6.5 0 1 0 8.35 8.35z"/></svg>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -216,17 +227,6 @@
   <footer class="foot">
     <div class="wrap foot-in">
       <p>The p3n apps are made by <a href="/">Nikita Andreiev</a>.</p>
-      <div class="theme" role="radiogroup" aria-label="Theme">
-        <button type="button" data-theme-set="system" role="radio" aria-checked="true" aria-label="System" title="System">
-          <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.75" y="3.75" width="14.5" height="10" rx="1.5"/><path d="M7 16.75h6M10 13.75v3"/></svg>
-        </button>
-        <button type="button" data-theme-set="light" role="radio" aria-checked="false" aria-label="Light" title="Light">
-          <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3.25"/><path d="M10 2.5v1.5M10 16v1.5M2.5 10H4M16 10h1.5M4.7 4.7l1.05 1.05M14.25 14.25l1.05 1.05M4.7 15.3l1.05-1.05M14.25 5.75l1.05-1.05"/></svg>
-        </button>
-        <button type="button" data-theme-set="dark" role="radio" aria-checked="false" aria-label="Dark" title="Dark">
-          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.25 12.1A6.5 6.5 0 0 1 7.9 3.75a6.5 6.5 0 1 0 8.35 8.35z"/></svg>
-        </button>
-      </div>
     </div>
   </footer>
   <script>
