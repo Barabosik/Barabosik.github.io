@@ -142,7 +142,7 @@ code { font: 14px / 1.5 var(--mono); background: var(--tint); border-radius: 4px
 
 /* every app at a glance, as on p3n.si's home page: what it does and where it stands, each card jumping to its part
    below. A filled dot: you can install it now. A ring: not out yet. */
-.glance { list-style: none; padding: 0; margin: 0 0 56px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.glance { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .glance li {
   position: relative; display: flex; flex-direction: column; align-items: flex-start; height: 100%; padding: 20px 22px;
   border-radius: 14px; background: var(--surface); transition: transform 120ms var(--ease-out);
@@ -154,7 +154,7 @@ code { font: 14px / 1.5 var(--mono); background: var(--tint); border-radius: 4px
 .card-link:focus-visible { outline: none; }
 .glance li:has(.card-link:focus-visible) { outline: 2px solid var(--accent-ink); outline-offset: 3px; }
 .glance b { font-size: 19px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.3; transition: color 150ms ease; }
-.glance span { margin: 4px 0 18px; font-size: 15px; line-height: 1.5; color: var(--muted); }
+.glance span { margin: 4px 0 18px; font-size: 16px; line-height: 1.5; color: var(--muted); }
 a.badge { position: relative; z-index: 1; color: var(--ink); text-decoration: none; transition: background-color 150ms ease; }
 @media (hover: hover) {
   .glance li:hover b { color: var(--accent-ink); }
@@ -167,29 +167,52 @@ a.badge { position: relative; z-index: 1; color: var(--ink); text-decoration: no
 .badge::before { content: ''; width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--ok); }
 .badge.is-soon { color: var(--muted); }
 .badge.is-soon::before { background: none; box-shadow: inset 0 0 0 1.5px currentColor; }
-.apps [id] { scroll-margin-top: 24px; }
 
-.app { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); border-radius: 20px; background: var(--surface); overflow: hidden; }
-.app + .app { margin-top: 20px; }
-.app-text { padding: 48px; }
+/* ---------- each app: one row, the same for all ---------- */
+/* No panels: the rows sit on the page, the text on the left and the whole app on the right. */
+.install { padding: 120px 0 40px; }
+.install [id] { scroll-margin-top: 32px; }
+.app { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 72px; align-items: start; }
+.app + .app { margin-top: 128px; }
 .app h3 { font-size: var(--s-h3); line-height: 1.15; letter-spacing: -0.025em; }
-.app-text > p:not(.note) { margin-top: 12px; }
-.app h4 { font-size: var(--s-body); }
-.also { margin-top: 36px; }
-.also .status { margin-top: 4px; }
-.status b { font-weight: 600; }
+.app-text > p:not(.where) { margin-top: 14px; font-size: 18px; line-height: 1.6; }
+.app-text > .btn, .also .btn, .get { margin-top: 28px; }
+/* when the button opens the app itself, the store page is the fallback, as a quiet link beside it */
+.get { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+.app-text .get .alt { font-size: 15px; color: var(--muted); }
+@media (hover: hover) { .app-text .get .alt:hover { color: var(--ink); } }
 
-/* the app itself, rising in from the card's bottom-right corner, on a step darker than the card (lighter in dark) */
-.app-shot { display: flex; align-items: flex-end; padding: 48px 0 0 48px; background: var(--rule); }
-.app-shot img { width: 100%; border-top-left-radius: 10px; }
+/* where it comes from: a filled dot when you can install it now, a ring when it isn't out yet */
+.where { position: relative; margin-top: 14px; padding-left: 17px; font-size: 15px; line-height: 1.55; color: var(--muted); }
+.where::before { content: ''; position: absolute; left: 0; top: 0.6em; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+.where.is-soon::before { background: none; box-shadow: inset 0 0 0 1.5px currentColor; }
+.where b { font-weight: 600; color: var(--ink); }
+.app-text > .where.is-soon { margin-top: 20px; }
+.also { margin-top: 12px; }
 
-.steps { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; padding: 40px 48px 48px; }
-.steps dt { font-weight: 600; }
-.steps dd { margin-top: 6px; font-size: 16px; line-height: 1.6; }
-.steps dd.where { margin-top: 2px; font-size: var(--s-small); color: var(--muted); }
-.steps dd.get { margin-top: 12px; }
-.steps .btn { min-height: 40px; padding: 0 16px; font-size: 15px; }
-.steps a:not(.btn), .fact a, .foot a { color: var(--accent-ink); }
+/* the slower ways to install, folded away under the button */
+.ways { margin-top: 24px; }
+.ways summary {
+  display: inline-flex; align-items: center; gap: 10px; padding: 6px 0; list-style: none; cursor: pointer;
+  font-size: 16px; font-weight: 500; transition: color 150ms ease;
+}
+.ways summary::-webkit-details-marker { display: none; }
+.ways summary::before {
+  content: ''; width: 7px; height: 7px; margin: 0 2px; border-right: 1.5px solid; border-bottom: 1.5px solid;
+  transform: rotate(-45deg); transition: transform 150ms var(--ease-out);
+}
+.ways[open] summary::before { transform: rotate(45deg); }
+@media (hover: hover) { .ways summary:hover { color: var(--accent-ink); } }
+.ways h4 { margin-top: 20px; font-size: 16px; }
+.ways p, .ways ol { margin-top: 6px; font-size: 16px; line-height: 1.6; }
+.ways ol { padding-left: 1.25em; }
+.ways li + li { margin-top: 4px; }
+.ways .more-link { margin-top: 8px; font-size: 15px; }
+.ways code.path { display: block; margin-top: 8px; padding: 10px 12px; border-radius: 8px; color: var(--ink); }
+
+.app-shot { margin: 0; }
+.app-shot img { width: 100%; border: 1px solid var(--rule); border-radius: 12px; }
+.app-text a:not(.btn), .fact a, .foot a { color: var(--accent-ink); }
 
 /* ---------- privacy, price, source ---------- */
 .facts { padding: 112px 0; }
@@ -234,9 +257,10 @@ a.badge { position: relative; z-index: 1; color: var(--ink); text-decoration: no
   .hero-in, .facts-in, .more-in { grid-template-columns: minmax(0, 1fr); gap: 48px; }
   .apps, .facts, .more { padding: 88px 0; }
   .glance { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .app { grid-template-columns: minmax(0, 1fr); }
-  .app-shot { order: 2; padding: 32px 0 0 32px; }
-  .steps { order: 1; grid-template-columns: minmax(0, 1fr); gap: 20px; padding: 0 48px 48px; }
+  .install { padding: 96px 0 24px; }
+  .app { grid-template-columns: minmax(0, 1fr); gap: 40px; }
+  .app-text { max-width: 640px; }
+  .app + .app { margin-top: 104px; }
   .facts-in { gap: 40px; }
   .more-in { gap: 32px; }
 }
@@ -253,14 +277,16 @@ a.badge { position: relative; z-index: 1; color: var(--ink); text-decoration: no
   .apps-head p { font-size: var(--s-body); }
   /* one column: the name and its status on one line (the status drops under the name where both don't fit), then
      what it does */
-  .glance { grid-template-columns: minmax(0, 1fr); gap: 8px; margin-bottom: 40px; }
+  .glance { grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .glance li { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 16px 18px; }
   .card-link { flex: none; margin-right: auto; }
-  .glance span { order: 1; flex-basis: 100%; margin: 0; font-size: 14px; }
+  .glance span { order: 1; flex-basis: 100%; margin: 0; font-size: 15px; }
   .badge { margin: 0; }
-  .app-text { padding: 28px 22px; }
-  .app-shot { padding: 22px 0 0 22px; }
-  .steps { padding: 0 22px 28px; }
+  .install { padding: 72px 0 8px; }
+  .app { gap: 28px; }
+  .app + .app { margin-top: 80px; }
+  .app-text > p:not(.where) { font-size: 17px; }
+  .app-text > .btn, .also .btn, .get { margin-top: 24px; }
   .links a { grid-template-columns: minmax(0, 1fr) 20px; gap: 4px 16px; padding: 20px 22px; }
   .links b { grid-column: 1; }
   .links span { grid-column: 1; grid-row: 2; }

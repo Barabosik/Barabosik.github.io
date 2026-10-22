@@ -126,25 +126,32 @@
           <li><a class="card-link" href="#sublime"><b>Sublime Text</b></a><span>Check and rewrite selected text in Sublime Text 4.</span><em class="badge is-soon">In review</em></li>
         </ul>
 
+      </div>
+    </section>
+
+    <!-- One row per app, all the same: what it does, one install button, where it comes from, and the slower ways
+         folded away under the button. The picture is the whole app, not a crop (phones get a close-up of the panel). -->
+    <section class="install" aria-label="Install each app">
+      <div class="wrap">
         <article class="app" id="browser" aria-labelledby="browser-title">
           <div class="app-text">
             <h3 id="browser-title">Chrome, Edge and Brave</h3>
             <p>Select text on any page, right-click and pick p3n, then Check for AI. The score, the reasons and a rewrite open in the side panel, and Replace puts the rewrite where your text was.</p>
-            <div class="actions">
-              <a class="btn btn-accent" href="https://chromewebstore.google.com/detail/bingopgkcgafmnpkoeckijkcbnfmchnh">Add to Chrome</a>
-            </div>
-            <p class="note">From the Chrome Web Store. Edge and Brave install it from there too.</p>
-
+            <a class="btn btn-accent" href="https://chromewebstore.google.com/detail/bingopgkcgafmnpkoeckijkcbnfmchnh">Add to Chrome</a>
+            <p class="where">Chrome Web Store. Edge and Brave install it from there too.</p>
             <div class="also" id="firefox">
-              <h4>Firefox</h4>
-              <p class="status" data-firefox-status><b>In review, coming soon.</b> The same extension, in Firefox's sidebar, for Firefox 140 or later.</p>
-              <div class="actions" data-firefox-install hidden>
-                <a class="btn btn-ink" href="#firefox">Add to Firefox</a>
+              <p class="where is-soon" data-firefox-status><b>Firefox:</b> in review, coming soon. The same extension, in Firefox's sidebar, for Firefox 140 or later.</p>
+              <div data-firefox-install hidden>
+                <a class="btn btn-accent" href="#firefox">Add to Firefox</a>
+                <p class="where">Firefox Add-ons, for Firefox 140 or later.</p>
               </div>
             </div>
           </div>
           <figure class="app-shot">
-            <img src="/p3n/browser.webp" width="880" height="660" loading="lazy" alt="p3n's side panel in Chrome next to a blog post: Likely AI-written, 94%, with the two sentences that read as AI.">
+            <picture>
+              <source media="(max-width: 560px)" srcset="/p3n/shot-chrome-phone.webp" width="800" height="600">
+              <img src="/p3n/shot-chrome-1200.webp" srcset="/p3n/shot-chrome-640.webp 640w, /p3n/shot-chrome-1200.webp 1200w" sizes="(max-width: 960px) 100vw, 640px" width="1200" height="750" loading="lazy" alt="p3n's side panel in Chrome next to a blog post: Likely AI-written, 94%, with the two sentences that read as AI.">
+            </picture>
           </figure>
         </article>
 
@@ -152,74 +159,130 @@
           <div class="app-text">
             <h3 id="office-title">Word and Excel</h3>
             <p>Select text in Word, or cells in Excel, and click Check for AI on the Home tab. Replace puts the rewrite back with each paragraph's style, and Ctrl+Z undoes it.</p>
-            <div class="actions">
-              <a class="btn btn-ink" href="https://nikita-andreiev.com/p3n-office-addin/manifest.xml" download="p3n-manifest.xml">Download the manifest</a>
-            </div>
-            <p class="note">p3n isn't in Microsoft's add-in store yet, so you add it once from this file. It loads from the web after that, so it updates by itself.</p>
+            <a class="btn btn-accent" href="https://nikita-andreiev.com/p3n-office-addin/manifest.xml" download="p3n-manifest.xml">Download the manifest</a>
+            <p class="where">p3n isn't in Microsoft's add-in store yet, so you add it once from this file. It loads from the web after that, so it updates by itself.</p>
+            <details class="ways">
+              <summary>How to add it</summary>
+              <h4>Word or Excel on the web</h4>
+              <ol>
+                <li>Open a document.</li>
+                <li>Choose Home › Add-ins › More Settings › Upload My Add-in, and upload the file. This browser keeps it.</li>
+              </ol>
+              <p class="more-link"><a href="https://learn.microsoft.com/office/dev/add-ins/testing/sideload-office-add-ins-for-testing#manually-sideload-an-add-in-to-office-on-the-web">Microsoft's steps</a></p>
+              <h4>Windows</h4>
+              <ol>
+                <li>Share a folder and put the file in it.</li>
+                <li>In Word or Excel, add the folder's network path under File › Options › Trust Center › Trust Center Settings › Trusted Add-in Catalogs, tick Show in Menu and restart.</li>
+                <li>Choose Home › Add-ins › Advanced › Shared Folder › p3n.</li>
+              </ol>
+              <p class="more-link"><a href="https://learn.microsoft.com/office/dev/add-ins/testing/create-a-network-shared-folder-catalog-for-task-pane-and-content-add-ins">Microsoft's steps</a></p>
+              <h4>Mac</h4>
+              <ol>
+                <li>Copy the file to this folder (for Excel, <code>com.microsoft.Excel</code>; make the <code>wef</code> folder if it's missing):<code class="path">~/Library/Containers/com.microsoft.Word/Data/Documents/wef</code></li>
+                <li>Restart the app, then choose Home › Add-ins › p3n.</li>
+              </ol>
+              <p class="more-link"><a href="https://learn.microsoft.com/office/dev/add-ins/testing/sideload-an-office-add-in-on-mac">Microsoft's steps</a></p>
+            </details>
           </div>
           <figure class="app-shot">
-            <img src="/p3n/word.webp" width="880" height="660" loading="lazy" alt="p3n in Word: the Check for AI button on the Home tab, and the p3n pane after a rewrite, No longer reads as AI, 95% to 1%, with the rewrite replaced in the document.">
+            <picture>
+              <source media="(max-width: 560px)" srcset="/p3n/shot-office-phone.webp" width="800" height="600">
+              <img src="/p3n/shot-office-1200.webp" srcset="/p3n/shot-office-640.webp 640w, /p3n/shot-office-1200.webp 1200w" sizes="(max-width: 960px) 100vw, 640px" width="1200" height="675" loading="lazy" alt="p3n in Word: the Check for AI button on the Home tab, and the p3n pane after a rewrite, No longer reads as AI, 95% to 1%, with the rewrite replaced in the document.">
+            </picture>
           </figure>
-          <dl class="steps">
-            <div>
-              <dt>On the web</dt>
-              <dd>Open a document, then Home › Add-ins › More Settings › Upload My Add-in, and upload the file. This browser keeps it. <a href="https://learn.microsoft.com/office/dev/add-ins/testing/sideload-office-add-ins-for-testing#manually-sideload-an-add-in-to-office-on-the-web">Microsoft's steps</a></dd>
-            </div>
-            <div>
-              <dt>Windows</dt>
-              <dd>Share a folder and put the file in it. In Word or Excel, add the folder's network path under File › Options › Trust Center › Trust Center Settings › Trusted Add-in Catalogs, tick Show in Menu and restart. Then Home › Add-ins › Advanced › Shared Folder › p3n. <a href="https://learn.microsoft.com/office/dev/add-ins/testing/create-a-network-shared-folder-catalog-for-task-pane-and-content-add-ins">Microsoft's steps</a></dd>
-            </div>
-            <div>
-              <dt>Mac</dt>
-              <dd>Copy the file to <code>~/Library/Containers/com.microsoft.Word/Data/Documents/wef</code> (for Excel, <code>com.microsoft.Excel</code>; make the <code>wef</code> folder if it's missing). Restart the app, then Home › Add-ins › p3n. <a href="https://learn.microsoft.com/office/dev/add-ins/testing/sideload-an-office-add-in-on-mac">Microsoft's steps</a></dd>
-            </div>
-          </dl>
-        </article>
-
-        <article class="app" id="editors" aria-labelledby="editors-title">
-          <div class="app-text">
-            <h3 id="editors-title">VS Code, Sublime Text and Obsidian</h3>
-            <p>Select text in a file or a note and run p3n: Check for AI or p3n: Rewrite, from the right-click menu or the command palette. Results open beside your text in your editor's light or dark theme, and Replace selection is one undo step.</p>
-            <p class="note">VS Code and Obsidian install from their stores and update themselves from there. Sublime Text is in review for Package Control, so it installs from GitHub for now.</p>
-          </div>
-          <figure class="app-shot">
-            <img src="/p3n/editors.webp" width="880" height="660" loading="lazy" alt="p3n in VS Code's dark theme: the p3n view after a rewrite, No longer reads as AI, 95% to 1%, next to the selected paragraph in a Markdown file.">
-          </figure>
-          <dl class="steps">
-            <div id="vscode">
-              <dt>VS Code</dt>
-              <dd class="where">Visual Studio Marketplace</dd>
-              <dd class="get"><a class="btn btn-ink" href="vscode:extension/nikita-andreiev.p3n-vscode">Install in VS Code</a></dd>
-              <dd>Opens p3n in VS Code's Extensions view, where you click Install. Not opening? Get it from <a href="https://marketplace.visualstudio.com/items?itemName=nikita-andreiev.p3n-vscode">the Marketplace</a>, or search for p3n in the Extensions view (Ctrl+Shift+X). Needs VS Code 1.90 or later. VSCodium, Cursor and Windsurf use Open VSX, where p3n is coming soon; until then, get <a href="https://github.com/Barabosik/p3n-vscode/releases/latest/download/p3n-vscode-0.1.0.vsix">the .vsix from GitHub</a> and choose … › Install from VSIX… in the Extensions view. <a href="https://github.com/Barabosik/p3n-vscode#install">Full steps</a></dd>
-            </div>
-            <div id="sublime">
-              <dt>Sublime Text</dt>
-              <dd class="where">On GitHub · Package Control in review</dd>
-              <dd class="get"><a class="btn btn-ink" href="https://github.com/Barabosik/p3n-sublime/archive/refs/tags/0.1.0.zip">Download the ZIP</a></dd>
-              <dd>Choose Preferences › Browse Packages…, unzip it there and rename the folder to exactly <code>p3n</code>. Or run <code>git clone https://github.com/Barabosik/p3n-sublime.git p3n</code> in that folder. Restart Sublime Text. Needs Sublime Text 4, build 4107 or later. Once <a href="https://github.com/sublimehq/package_control_channel/pull/9627">Package Control's review</a> is done, you can install it from there instead. <a href="https://github.com/Barabosik/p3n-sublime#install">Full steps</a></dd>
-            </div>
-            <div id="obsidian">
-              <dt>Obsidian</dt>
-              <dd class="where">Community plugins</dd>
-              <dd class="get"><a class="btn btn-ink" href="obsidian://show-plugin?id=ai-pen">Open in Obsidian</a></dd>
-              <dd>Shows p3n in Obsidian's Community plugins, where you click Install, then Enable. Not opening? See it in <a href="https://community.obsidian.md/plugins/ai-pen">Obsidian's plugin directory</a>, or open Settings › Community plugins › Browse and search for p3n. By hand: copy <code>main.js</code>, <code>manifest.json</code> and <code>styles.css</code> from <a href="https://github.com/Barabosik/p3n-obsidian/releases/latest">the GitHub release</a> into <code>&lt;your vault&gt;/.obsidian/plugins/ai-pen/</code>. Works on desktop and mobile. <a href="https://github.com/Barabosik/p3n-obsidian#install">Full steps</a></dd>
-            </div>
-          </dl>
         </article>
 
         <article class="app" id="docs" aria-labelledby="docs-title">
           <div class="app-text">
             <h3 id="docs-title">Google Docs</h3>
             <p>Select text in a doc and open Extensions › p3n. Check and rewrite in the sidebar; Replace selection keeps headings, lists and formatting, and one Ctrl+Z undoes it.</p>
-            <p class="status"><b>Coming soon.</b> The add-on is in Google's review for the Workspace Marketplace.</p>
+            <p class="where is-soon"><b>Coming soon.</b> The add-on is in Google's review for the Workspace Marketplace.</p>
           </div>
           <figure class="app-shot">
-            <img src="/p3n/docs.webp" width="880" height="660" loading="lazy" alt="The p3n sidebar in Google Docs: AI-written, then humanized, 97% likely AI, with the sentences that read as AI.">
+            <picture>
+              <source media="(max-width: 560px)" srcset="/p3n/shot-docs-phone.webp" width="800" height="600">
+              <img src="/p3n/shot-docs-1200.webp" srcset="/p3n/shot-docs-640.webp 640w, /p3n/shot-docs-1200.webp 1200w" sizes="(max-width: 960px) 100vw, 640px" width="1200" height="750" loading="lazy" alt="The p3n sidebar in Google Docs: AI-written, then humanized, 97% likely AI, with the sentences that read as AI.">
+            </picture>
+          </figure>
+        </article>
+
+        <article class="app" id="vscode" aria-labelledby="vscode-title">
+          <div class="app-text">
+            <h3 id="vscode-title">VS Code</h3>
+            <p>Select text in any file and run p3n: Check for AI or p3n: Rewrite, from the right-click menu or the command palette. Results open in the p3n view beside your text, and Replace selection is one undo step.</p>
+            <div class="get">
+              <a class="btn btn-accent" href="vscode:extension/nikita-andreiev.p3n-vscode">Install in VS Code</a>
+              <a class="alt" href="https://marketplace.visualstudio.com/items?itemName=nikita-andreiev.p3n-vscode">Not opening? Marketplace page</a>
+            </div>
+            <p class="where">Visual Studio Marketplace, for VS Code 1.90 or later. It updates itself from there.</p>
+            <details class="ways">
+              <summary>Other ways to install</summary>
+              <h4>From VS Code</h4>
+              <p>Search for p3n in the Extensions view (Ctrl+Shift+X) and click Install.</p>
+              <h4>VSCodium, Cursor and Windsurf</h4>
+              <p>These use Open VSX, where p3n is coming soon. Until then, get <a href="https://github.com/Barabosik/p3n-vscode/releases/latest/download/p3n-vscode-0.1.0.vsix">the .vsix from GitHub</a>, then choose … › Install from VSIX… in the Extensions view and pick the file.</p>
+              <p class="more-link"><a href="https://github.com/Barabosik/p3n-vscode#install">Full steps</a></p>
+            </details>
+          </div>
+          <figure class="app-shot">
+            <picture>
+              <source media="(max-width: 560px)" srcset="/p3n/shot-vscode-phone.webp" width="800" height="600">
+              <img src="/p3n/shot-vscode-1200.webp" srcset="/p3n/shot-vscode-640.webp 640w, /p3n/shot-vscode-1200.webp 1200w" sizes="(max-width: 960px) 100vw, 640px" width="1200" height="750" loading="lazy" alt="p3n in VS Code: the p3n view next to a Markdown file, Likely AI-written, 96%, with the sentences that read as AI.">
+            </picture>
+          </figure>
+        </article>
+
+        <article class="app" id="obsidian" aria-labelledby="obsidian-title">
+          <div class="app-text">
+            <h3 id="obsidian-title">Obsidian</h3>
+            <p>Select text in a note and run p3n: Check for AI or p3n: Rewrite, from the right-click menu or the command palette. Results open in a side view next to the note, on desktop and mobile, and Replace selection is one undo step.</p>
+            <div class="get">
+              <a class="btn btn-accent" href="obsidian://show-plugin?id=ai-pen">Open in Obsidian</a>
+              <a class="alt" href="https://community.obsidian.md/plugins/ai-pen">Not opening? Plugin directory</a>
+            </div>
+            <p class="where">Obsidian's Community plugins. It updates itself from there.</p>
+            <details class="ways">
+              <summary>Other ways to install</summary>
+              <h4>From Obsidian</h4>
+              <p>Open Settings › Community plugins › Browse, search for p3n, then Install and Enable.</p>
+              <h4>By hand</h4>
+              <p>Copy <code>main.js</code>, <code>manifest.json</code> and <code>styles.css</code> from <a href="https://github.com/Barabosik/p3n-obsidian/releases/latest">the GitHub release</a> into this folder, then turn on p3n in Settings › Community plugins:<code class="path">&lt;your vault&gt;/.obsidian/plugins/ai-pen/</code></p>
+              <p class="more-link"><a href="https://github.com/Barabosik/p3n-obsidian#install">Full steps</a></p>
+            </details>
+          </div>
+          <figure class="app-shot">
+            <picture>
+              <source media="(max-width: 560px)" srcset="/p3n/shot-obsidian-phone.webp" width="800" height="600">
+              <img src="/p3n/shot-obsidian-1200.webp" srcset="/p3n/shot-obsidian-640.webp 640w, /p3n/shot-obsidian-1200.webp 1200w" sizes="(max-width: 960px) 100vw, 640px" width="1200" height="800" loading="lazy" alt="p3n in Obsidian: the p3n view next to a note, Likely AI-written, 96%, with the sentences that read as AI.">
+            </picture>
+          </figure>
+        </article>
+
+        <article class="app" id="sublime" aria-labelledby="sublime-title">
+          <div class="app-text">
+            <h3 id="sublime-title">Sublime Text</h3>
+            <p>Select text and run p3n: Check for AI or p3n: Rewrite, from the right-click menu or the command palette. Results show right under your text, and Replace selection is one undo step.</p>
+            <a class="btn btn-accent" href="https://github.com/Barabosik/p3n-sublime/archive/refs/tags/0.1.0.zip">Download the ZIP</a>
+            <p class="where is-review">From GitHub, for Sublime Text 4 (build 4107 or later). <a href="https://github.com/sublimehq/package_control_channel/pull/9627">Package Control's review</a> is under way; once it's done, you can install it from there instead.</p>
+            <details class="ways">
+              <summary>How to install it</summary>
+              <ol>
+                <li>Choose Preferences › Browse Packages….</li>
+                <li>Unzip the download there and rename the folder to exactly <code>p3n</code>. Or run this in that folder:<code class="path">git clone https://github.com/Barabosik/p3n-sublime.git p3n</code></li>
+                <li>Restart Sublime Text.</li>
+              </ol>
+              <p class="more-link"><a href="https://github.com/Barabosik/p3n-sublime#install">Full steps</a></p>
+            </details>
+          </div>
+          <figure class="app-shot">
+            <picture>
+              <source media="(max-width: 560px)" srcset="/p3n/shot-sublime-phone.webp" width="800" height="600">
+              <img src="/p3n/shot-sublime-1200.webp" srcset="/p3n/shot-sublime-640.webp 640w, /p3n/shot-sublime-1200.webp 1200w" sizes="(max-width: 960px) 100vw, 640px" width="1200" height="771" loading="lazy" alt="p3n in Sublime Text: the result right under the selected paragraph, Likely AI-written, 96%, with the sentences that read as AI.">
+            </picture>
           </figure>
         </article>
       </div>
     </section>
-
     <section class="facts" aria-label="Privacy, price and source">
       <div class="wrap facts-in">
         <p class="statement">Your text goes to api.p3n.si only when you click. No history, no analytics.</p>
