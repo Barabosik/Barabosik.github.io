@@ -290,8 +290,15 @@ function fitAll() {
   const inner = document.documentElement.clientWidth;
   const margin = parseFloat(getComputedStyle($('.contact')).paddingLeft);
   const email = $('.email-text');
+  const at = email.querySelector('.at');
   if (inner > 760) fit(email, inner - margin * 2);
-  else email.style.fontSize = '';
+  else {
+    // phones: two lines at one size, set by the longer domain line
+    email.style.fontSize = '';
+    fit(at, inner - margin * 2);
+    email.style.fontSize = at.style.fontSize;
+    at.style.fontSize = '';
+  }
   fit($('.foot-name'), inner - margin * 2);
 }
 // size the display lines only once the display face itself has arrived

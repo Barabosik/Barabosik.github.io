@@ -527,7 +527,7 @@ html.is-grabbing, html.is-grabbing * { cursor: grabbing !important; user-select:
   .lineup .group th { padding: 48px 0 14px; font-size: 1.375rem; }
   .contact { min-height: calc(var(--vh) * 86); }
   .email-text { font-size: 11.5vw; white-space: normal; }
-  .email-text .at { display: block; }
+  .email-text .at { display: inline-block; white-space: nowrap; }
   .contact-foot { flex-direction: column; }
   .foot-places, .foot-links { grid-column: 1 / -1; }
   .foot-links { margin-top: 40px; grid-template-columns: 1fr 1fr; }
