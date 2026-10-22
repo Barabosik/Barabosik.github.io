@@ -342,12 +342,12 @@ html.is-grabbing, html.is-grabbing * { cursor: grabbing !important; user-select:
 .project-tether .shot-small { grid-column: 7 / -1; margin-top: 56px; }
 
 /* p3n.si: the old page and the new one under one handle; drag (or arrow keys) to move the line */
-.project-p3n .shot-compare { grid-column: 1 / span 7; grid-row: 1; }
-.project-p3n .project-text { grid-column: 9 / -1; grid-row: 1; align-self: center; }
+.project-p3n .project-text { grid-column: 1 / span 4; grid-row: 1; align-self: center; }
+.project-p3n .shot-compare { grid-column: 6 / -1; grid-row: 1; }
 
-/* p3n's apps: where it runs, as a list like "Works with", and four of them at work; text on the left this time */
-.project-p3n-apps .project-text { grid-column: 1 / span 4; grid-row: 1; align-self: center; }
-.project-p3n-apps .shot-main { grid-column: 6 / -1; grid-row: 1; align-self: center; }
+/* p3n's apps: where it runs, as a list like "Works with", and four of them at work; the shots on the left this time */
+.project-p3n-apps .shot-main { grid-column: 1 / span 7; grid-row: 1; align-self: center; }
+.project-p3n-apps .project-text { grid-column: 9 / -1; grid-row: 1; align-self: center; }
 .apps-list { display: grid; gap: 10px; max-width: 38ch; font-size: var(--step-small); }
 .apps-list li { display: flex; justify-content: space-between; gap: 16px; }
 .apps-list li span:last-child { color: var(--muted); text-align: right; }
@@ -357,7 +357,7 @@ html.is-grabbing, html.is-grabbing * { cursor: grabbing !important; user-select:
 .shot-apps img { display: block; aspect-ratio: 16 / 10; object-fit: cover; object-position: right top; }
 .shot-apps .cell:nth-child(3) img { object-position: left top; }
 
-/* one-shot-site: the banner on the left like p3n.si; the name needs five columns */
+/* one-shot-site: the banner on the left; the name needs five columns */
 .project-oss .shot-main { grid-column: 1 / span 6; grid-row: 1; align-self: center; }
 .project-oss .project-text { grid-column: 8 / -1; grid-row: 1; align-self: center; }
 @media (max-width: 1200px) and (min-width: 761px) {
