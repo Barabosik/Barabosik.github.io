@@ -116,14 +116,14 @@
         </div>
 
         <ul class="glance" aria-label="Every p3n app and where it stands">
-          <li><a href="#browser"><b>Chrome</b><span>Right-click text on any page. Edge and Brave install it too.</span><em class="badge">Add to Chrome</em></a></li>
-          <li><a href="#firefox"><b>Firefox</b><span>The same extension, in Firefox's sidebar.</span><em class="badge is-soon" data-firefox-badge>In review</em></a></li>
-          <li><a href="#office"><b>Word</b><span>Check for AI on the Home tab. Replace keeps each paragraph's style.</span><em class="badge">Install</em></a></li>
-          <li><a href="#office"><b>Excel</b><span>Select cells, then Check for AI on the Home tab.</span><em class="badge">Install</em></a></li>
-          <li><a href="#docs"><b>Google Docs</b><span>Check and rewrite in a sidebar, under Extensions › p3n.</span><em class="badge is-soon">In review</em></a></li>
-          <li><a href="#vscode"><b>VS Code</b><span>Select text in any file. VSCodium, Cursor and Windsurf too.</span><em class="badge">Install from Marketplace</em></a></li>
-          <li><a href="#obsidian"><b>Obsidian</b><span>Check and rewrite your notes, on desktop and mobile.</span><em class="badge">In Community plugins</em></a></li>
-          <li><a href="#sublime"><b>Sublime Text</b><span>Check and rewrite selected text in Sublime Text 4.</span><em class="badge">On GitHub · store in review</em></a></li>
+          <li><a class="card-link" href="#browser"><b>Chrome</b></a><span>Right-click text on any page. Edge and Brave install it too.</span><a class="badge" href="https://chromewebstore.google.com/detail/bingopgkcgafmnpkoeckijkcbnfmchnh">Add to Chrome</a></li>
+          <li><a class="card-link" href="#firefox"><b>Firefox</b></a><span>The same extension, in Firefox's sidebar.</span><em class="badge is-soon" data-firefox-badge>In review</em></li>
+          <li><a class="card-link" href="#office"><b>Word</b></a><span>Check for AI on the Home tab. Replace keeps each paragraph's style.</span><em class="badge">Install</em></li>
+          <li><a class="card-link" href="#office"><b>Excel</b></a><span>Select cells, then Check for AI on the Home tab.</span><em class="badge">Install</em></li>
+          <li><a class="card-link" href="#docs"><b>Google Docs</b></a><span>Check and rewrite in a sidebar, under Extensions › p3n.</span><em class="badge is-soon">In review</em></li>
+          <li><a class="card-link" href="#vscode"><b>VS Code</b></a><span>Select text in any file. VSCodium, Cursor and Windsurf too.</span><a class="badge" href="vscode:extension/nikita-andreiev.p3n-vscode">Install in VS Code</a></li>
+          <li><a class="card-link" href="#obsidian"><b>Obsidian</b></a><span>Check and rewrite your notes, on desktop and mobile.</span><a class="badge" href="obsidian://show-plugin?id=ai-pen">Open in Obsidian</a></li>
+          <li><a class="card-link" href="#sublime"><b>Sublime Text</b></a><span>Check and rewrite selected text in Sublime Text 4.</span><em class="badge is-soon">In review</em></li>
         </ul>
 
         <article class="app" id="browser" aria-labelledby="browser-title">
@@ -189,8 +189,8 @@
             <div id="vscode">
               <dt>VS Code</dt>
               <dd class="where">Visual Studio Marketplace</dd>
-              <dd class="get"><a class="btn btn-ink" href="https://marketplace.visualstudio.com/items?itemName=nikita-andreiev.p3n-vscode">Install from Marketplace</a></dd>
-              <dd>Or search for p3n in the Extensions view (Ctrl+Shift+X) and click Install. Needs VS Code 1.90 or later. VSCodium, Cursor and Windsurf use Open VSX, where p3n is coming soon; until then, get <a href="https://github.com/Barabosik/p3n-vscode/releases/latest/download/p3n-vscode-0.1.0.vsix">the .vsix from GitHub</a> and choose … › Install from VSIX… in the Extensions view. <a href="https://github.com/Barabosik/p3n-vscode#install">Full steps</a></dd>
+              <dd class="get"><a class="btn btn-ink" href="vscode:extension/nikita-andreiev.p3n-vscode">Install in VS Code</a></dd>
+              <dd>Opens p3n in VS Code's Extensions view, where you click Install. Not opening? Get it from <a href="https://marketplace.visualstudio.com/items?itemName=nikita-andreiev.p3n-vscode">the Marketplace</a>, or search for p3n in the Extensions view (Ctrl+Shift+X). Needs VS Code 1.90 or later. VSCodium, Cursor and Windsurf use Open VSX, where p3n is coming soon; until then, get <a href="https://github.com/Barabosik/p3n-vscode/releases/latest/download/p3n-vscode-0.1.0.vsix">the .vsix from GitHub</a> and choose … › Install from VSIX… in the Extensions view. <a href="https://github.com/Barabosik/p3n-vscode#install">Full steps</a></dd>
             </div>
             <div id="sublime">
               <dt>Sublime Text</dt>
@@ -201,8 +201,8 @@
             <div id="obsidian">
               <dt>Obsidian</dt>
               <dd class="where">Community plugins</dd>
-              <dd class="get"><a class="btn btn-ink" href="https://community.obsidian.md/plugins/ai-pen">Add to Obsidian</a></dd>
-              <dd>Or in Obsidian, open Settings › Community plugins › Browse, search for p3n, then Install and Enable. A new listing can take a day to show up in that search. By hand: copy <code>main.js</code>, <code>manifest.json</code> and <code>styles.css</code> from <a href="https://github.com/Barabosik/p3n-obsidian/releases/latest">the GitHub release</a> into <code>&lt;your vault&gt;/.obsidian/plugins/ai-pen/</code>. Works on desktop and mobile. <a href="https://github.com/Barabosik/p3n-obsidian#install">Full steps</a></dd>
+              <dd class="get"><a class="btn btn-ink" href="obsidian://show-plugin?id=ai-pen">Open in Obsidian</a></dd>
+              <dd>Shows p3n in Obsidian's Community plugins, where you click Install, then Enable. Not opening? See it in <a href="https://community.obsidian.md/plugins/ai-pen">Obsidian's plugin directory</a>, or open Settings › Community plugins › Browse and search for p3n. By hand: copy <code>main.js</code>, <code>manifest.json</code> and <code>styles.css</code> from <a href="https://github.com/Barabosik/p3n-obsidian/releases/latest">the GitHub release</a> into <code>&lt;your vault&gt;/.obsidian/plugins/ai-pen/</code>. Works on desktop and mobile. <a href="https://github.com/Barabosik/p3n-obsidian#install">Full steps</a></dd>
             </div>
           </dl>
         </article>

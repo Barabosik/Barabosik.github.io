@@ -143,14 +143,23 @@ code { font: 14px / 1.5 var(--mono); background: var(--tint); border-radius: 4px
 /* every app at a glance, as on p3n.si's home page: what it does and where it stands, each card jumping to its part
    below. A filled dot: you can install it now. A ring: not out yet. */
 .glance { list-style: none; padding: 0; margin: 0 0 56px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-.glance a {
-  display: flex; flex-direction: column; align-items: flex-start; height: 100%; padding: 20px 22px;
-  border-radius: 14px; background: var(--surface); text-decoration: none; transition: transform 120ms var(--ease-out);
+.glance li {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; height: 100%; padding: 20px 22px;
+  border-radius: 14px; background: var(--surface); transition: transform 120ms var(--ease-out);
 }
-.glance a:active { transform: scale(0.99); }
+.glance li:active { transform: scale(0.99); }
+/* the name's link covers the card; a pill that is an action of its own (store, or open in the app) sits above it */
+.card-link { text-decoration: none; }
+.card-link::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }
+.card-link:focus-visible { outline: none; }
+.glance li:has(.card-link:focus-visible) { outline: 2px solid var(--accent-ink); outline-offset: 3px; }
 .glance b { font-size: 19px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.3; transition: color 150ms ease; }
 .glance span { margin: 4px 0 18px; font-size: 15px; line-height: 1.5; color: var(--muted); }
-@media (hover: hover) { .glance a:hover b { color: var(--accent-ink); } }
+a.badge { position: relative; z-index: 1; color: var(--ink); text-decoration: none; transition: background-color 150ms ease; }
+@media (hover: hover) {
+  .glance li:hover b { color: var(--accent-ink); }
+  a.badge:hover { background: var(--rule); }
+}
 .badge {
   display: inline-flex; align-items: center; gap: 7px; margin-top: auto; padding: 3px 10px 3px 9px; border-radius: 999px;
   background: var(--tint); font-size: 13px; font-style: normal; font-weight: 500; line-height: 1.5; white-space: nowrap;
@@ -245,8 +254,8 @@ code { font: 14px / 1.5 var(--mono); background: var(--tint); border-radius: 4px
   /* one column: the name and its status on one line (the status drops under the name where both don't fit), then
      what it does */
   .glance { grid-template-columns: minmax(0, 1fr); gap: 8px; margin-bottom: 40px; }
-  .glance a { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 16px 18px; }
-  .glance b { flex: none; margin-right: auto; }
+  .glance li { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 16px 18px; }
+  .card-link { flex: none; margin-right: auto; }
   .glance span { order: 1; flex-basis: 100%; margin: 0; font-size: 14px; }
   .badge { margin: 0; }
   .app-text { padding: 28px 22px; }
