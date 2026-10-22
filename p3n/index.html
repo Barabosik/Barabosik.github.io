@@ -123,7 +123,7 @@
           <li><a class="card-link" href="#docs"><b>Google Docs</b></a><span>Check and rewrite in a sidebar, under Extensions › p3n.</span><em class="badge is-soon">In review</em></li>
           <li><a class="card-link" href="#vscode"><b>VS Code</b></a><span>Select text in any file. VSCodium, Cursor and Windsurf too.</span><a class="badge" href="vscode:extension/nikita-andreiev.p3n-vscode">Install in VS Code</a></li>
           <li><a class="card-link" href="#obsidian"><b>Obsidian</b></a><span>Check and rewrite your notes, on desktop and mobile.</span><a class="badge" href="obsidian://show-plugin?id=ai-pen">Open in Obsidian</a></li>
-          <li><a class="card-link" href="#sublime"><b>Sublime Text</b></a><span>Check and rewrite selected text in Sublime Text 4.</span><em class="badge is-soon">In review</em></li>
+          <li><a class="card-link" href="#sublime"><b>Sublime Text</b></a><span>Check and rewrite selected text in Sublime Text 4.</span><em class="badge">Install with Package Control</em></li>
         </ul>
 
       </div>
@@ -262,13 +262,26 @@
           <div class="app-text">
             <h3 id="sublime-title">Sublime Text</h3>
             <p>Select text and run p3n: Check for AI or p3n: Rewrite, from the right-click menu or the command palette. Results show right under your text, and Replace selection is one undo step.</p>
-            <a class="btn btn-accent" href="https://github.com/Barabosik/p3n-sublime/archive/refs/tags/0.1.0.zip">Download the ZIP</a>
-            <p class="where is-review">From GitHub, for Sublime Text 4 (build 4107 or later). <a href="https://github.com/sublimehq/package_control_channel/pull/9627">Package Control's review</a> is under way; once it's done, you can install it from there instead.</p>
+            <h4 class="steps-title">Install with Package Control</h4>
+            <ol class="steps">
+              <li>
+                Open the command palette (Ctrl+Shift+P, or Cmd+Shift+P on a Mac), run Package Control: Add Repository, paste this address and press Enter:
+                <span class="copy-field">
+                  <code>https://raw.<wbr>githubusercontent.com/<wbr>Barabosik/<wbr>p3n-sublime/<wbr>main/<wbr>repository.json</code>
+                  <button class="btn btn-accent" type="button" data-copy="https://raw.githubusercontent.com/Barabosik/p3n-sublime/main/repository.json" aria-live="polite">Copy</button>
+                </span>
+              </li>
+              <li>Run Package Control: Install Package and choose p3n. Package Control keeps it up to date from then on.</li>
+            </ol>
+            <p class="steps-note">No Package Control commands in the palette? Run Install Package Control first.</p>
+            <p class="where is-soon">Listing in review, for Sublime Text 4 (build 4107 or later). Once <a href="https://github.com/sublimehq/package_control_channel/pull/9627">Package Control's review</a> is done, step 1 goes away.</p>
             <details class="ways">
-              <summary>How to install it</summary>
+              <summary>Other ways to install</summary>
+              <h4>By hand</h4>
+              <p>This way it doesn't update itself.</p>
               <ol>
                 <li>Choose Preferences › Browse Packages….</li>
-                <li>Unzip the download there and rename the folder to exactly <code>p3n</code>. Or run this in that folder:<code class="path">git clone https://github.com/<wbr>Barabosik/<wbr>p3n-sublime.git p3n</code></li>
+                <li>Unzip <a href="https://github.com/Barabosik/p3n-sublime/archive/refs/tags/0.1.0.zip">the ZIP</a> there and rename the folder to exactly <code>p3n</code>. Or run this in that folder:<code class="path">git clone https://github.com/<wbr>Barabosik/<wbr>p3n-sublime.git p3n</code></li>
                 <li>Restart Sublime Text.</li>
               </ol>
               <p class="more-link"><a href="https://github.com/Barabosik/p3n-sublime#install">Full steps</a></p>
@@ -367,6 +380,21 @@
         document.querySelector('[data-firefox-note]').hidden = false;
       }
     })();
+
+    // Copy buttons (Sublime's repository address). Where the clipboard is blocked, the address gets selected instead,
+    // so Ctrl+C still works.
+    document.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-copy]');
+      if (!b) return;
+      function show(text) { b.textContent = text; clearTimeout(b.reset); b.reset = setTimeout(function () { b.textContent = 'Copy'; }, 2000); }
+      function select() {
+        var r = document.createRange(); r.selectNodeContents(b.previousElementSibling);
+        var s = getSelection(); s.removeAllRanges(); s.addRange(r);
+        show('Selected');
+      }
+      if (!navigator.clipboard) return select();
+      navigator.clipboard.writeText(b.dataset.copy).then(function () { show('Copied'); }, select);
+    });
   </script>
 </body>
 </html>

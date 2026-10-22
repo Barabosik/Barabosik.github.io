@@ -80,7 +80,8 @@ code { font: 14px / 1.5 var(--mono); background: var(--tint); border-radius: 4px
 .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
 .btn {
   display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 22px;
-  border-radius: 8px; font-size: 16px; font-weight: 500; text-decoration: none; white-space: nowrap;
+  border: 0; border-radius: 8px; font-family: inherit; font-size: 16px; font-weight: 500; text-decoration: none; white-space: nowrap;
+  cursor: pointer;
   transition: background-color 150ms ease, transform 120ms var(--ease-out);
 }
 .btn:active { transform: scale(0.98); }
@@ -175,7 +176,7 @@ a.badge { position: relative; z-index: 1; color: var(--ink); text-decoration: no
 .app { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 72px; align-items: start; }
 .app + .app { margin-top: 128px; }
 .app h3 { font-size: var(--s-h3); line-height: 1.15; letter-spacing: -0.025em; }
-.app-text > p:not(.where) { margin-top: 14px; font-size: 18px; line-height: 1.6; }
+.app-text > p:not(.where):not(.steps-note) { margin-top: 14px; font-size: 18px; line-height: 1.6; }
 .app-text > .btn, .also .btn, .get { margin-top: 28px; }
 /* when the button opens the app itself, the store page is the fallback, as a quiet link beside it */
 .get { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
@@ -210,6 +211,16 @@ a.badge { position: relative; z-index: 1; color: var(--ink); text-decoration: no
 .ways .more-link { margin-top: 8px; font-size: 15px; }
 .ways code.path { display: block; margin-top: 8px; padding: 10px 12px; border-radius: 8px; color: var(--ink); overflow-wrap: break-word; } /* breaks at the slashes (wbr), not mid-word */
 @media (prefers-reduced-motion: reduce) { .ways summary::before { transition: none; } }
+
+/* steps shown open, for an app whose main way to install is a few steps (Sublime: Package Control) */
+.steps-title { margin-top: 28px; font-size: 16px; }
+.steps { margin-top: 8px; padding-left: 1.25em; font-size: 16px; line-height: 1.6; }
+.steps li + li { margin-top: 8px; }
+.app-text > p.steps-note { margin-top: 10px; font-size: 15px; color: var(--muted); }
+/* an address to paste, with its Copy button: the row's one orange action */
+.copy-field { display: flex; align-items: center; gap: 8px; margin: 10px 0 2px; padding-right: 6px; border-radius: 8px; background: var(--tint); }
+.copy-field code { flex: 1; min-width: 0; padding: 10px 12px; background: none; overflow-wrap: break-word; }
+.copy-field .btn { flex: none; min-width: 6em; min-height: 36px; padding: 0 14px; border-radius: 6px; font-size: 15px; }
 
 .app-shot { margin: 0; }
 .app-shot img { width: 100%; border: 1px solid var(--rule); border-radius: 12px; }
@@ -286,7 +297,7 @@ a.badge { position: relative; z-index: 1; color: var(--ink); text-decoration: no
   .install { padding: 72px 0 8px; }
   .app { gap: 28px; }
   .app + .app { margin-top: 80px; }
-  .app-text > p:not(.where) { font-size: 17px; }
+  .app-text > p:not(.where):not(.steps-note) { font-size: 17px; }
   .app-text > .btn, .also .btn, .get { margin-top: 24px; }
   .links a { grid-template-columns: minmax(0, 1fr) 20px; gap: 4px 16px; padding: 20px 22px; }
   .links b { grid-column: 1; }
