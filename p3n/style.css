@@ -208,7 +208,8 @@ a.badge { position: relative; z-index: 1; color: var(--ink); text-decoration: no
 .ways ol { padding-left: 1.25em; }
 .ways li + li { margin-top: 4px; }
 .ways .more-link { margin-top: 8px; font-size: 15px; }
-.ways code.path { display: block; margin-top: 8px; padding: 10px 12px; border-radius: 8px; color: var(--ink); }
+.ways code.path { display: block; margin-top: 8px; padding: 10px 12px; border-radius: 8px; color: var(--ink); overflow-wrap: break-word; } /* breaks at the slashes (wbr), not mid-word */
+@media (prefers-reduced-motion: reduce) { .ways summary::before { transition: none; } }
 
 .app-shot { margin: 0; }
 .app-shot img { width: 100%; border: 1px solid var(--rule); border-radius: 12px; }
