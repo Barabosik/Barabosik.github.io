@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Nikita Andreiev, software engineer and security researcher</title>
-  <meta name="description" content="Nikita Andreiev is a software engineer and security researcher in Saarbrücken. He writes hidden-test tasks for AI code, tests web apps for broken access control, builds a browser chess analyzer and a grapple-swing platformer, and redesigned p3n.si.">
+  <meta name="description" content="Nikita Andreiev is a software engineer and security researcher in Saarbrücken. He writes hidden-test tasks for AI code, tests web apps for broken access control, builds a browser chess analyzer, a grapple-swing platformer and p3n's apps for browsers, Word, Excel and code editors, and redesigned p3n.si.">
   <meta name="theme-color" content="#161c1a">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://nikita-andreiev.com/">
@@ -179,20 +179,33 @@
         </figure>
       </article>
 
-      <article class="project project-p3n-ext">
+      <article class="project project-p3n-apps">
         <div class="project-text" data-stagger>
-          <h3 class="project-title">p3n for Chrome</h3>
-          <p>p3n's browser extension, now in the Chrome Web Store. Select text on any page, right-click, and see whether it reads as AI-written and which sentences give it away. Rewrite drops the filler, and Replace puts the new version where your text was. It runs in Edge and Brave too.</p>
-          <p>The VS Code and Obsidian versions are in their stores; Firefox, Google Docs and Sublime Text are in store review; Word and Excel install from the all-apps page for now.</p>
-          <p class="project-meta">JavaScript, Manifest V3, a side panel. Your text leaves the browser only when you click.</p>
+          <h3 class="project-title">p3n, wherever <span class="nobr">you write</span></h3>
+          <p>p3n finds the AI in any text and rewrites it so it reads as human. Select text in the app you're writing in, see which sentences give it away, and put the rewrite where your text was.</p>
+          <ul class="apps-list" aria-label="Where p3n runs">
+            <li><span>Chrome, Edge, Brave</span><span>Chrome Web Store</span></li>
+            <li><span>VS Code</span><span>Marketplace</span></li>
+            <li><span>Obsidian</span><span>Community plugins</span></li>
+            <li><span>Sublime Text</span><span>Package Control</span></li>
+            <li><span>Word, Excel</span><span>From a manifest</span></li>
+            <li><span>Firefox</span><span>In review</span></li>
+            <li><span>Google Docs</span><span>In review</span></li>
+            <li><span>Your own code</span><span>API at p3n.si</span></li>
+          </ul>
+          <p class="project-meta">JavaScript, TypeScript and Python: six apps on one API. Your text goes to api.p3n.si only when you click.</p>
           <div class="actions">
-            <a class="button" href="https://chromewebstore.google.com/detail/bingopgkcgafmnpkoeckijkcbnfmchnh">Add to Chrome</a>
-            <a class="link" href="/p3n/">All apps</a>
-            <a class="link" href="https://github.com/Barabosik/p3n-chrome-extension">Source</a>
+            <a class="button" href="/p3n/">Get p3n</a>
+            <a class="link" href="https://chromewebstore.google.com/detail/bingopgkcgafmnpkoeckijkcbnfmchnh">Add to Chrome</a>
+            <a class="link" href="https://github.com/Barabosik?tab=repositories&amp;q=p3n">Source</a>
           </div>
         </div>
-        <figure class="shot shot-main" data-shot>
-          <img src="/img/p3n-extension.webp" width="1280" height="800" alt="p3n's side panel in Chrome next to a blog post with a paragraph selected: Likely AI-written, 94%, with the two sentences that read as AI." loading="lazy">
+        <!-- four of the apps, each a store screenshot from the install page, cropped to the same frame -->
+        <figure class="shot shot-main shot-apps" data-shot>
+          <span class="cell"><img src="/p3n/shot-chrome-640.webp" srcset="/p3n/shot-chrome-640.webp 640w, /p3n/shot-chrome-1200.webp 1200w" sizes="(max-width: 760px) 50vw, 30vw" width="1200" height="750" alt="p3n's side panel in Chrome next to a blog post: Likely AI-written, 94%, with the sentences that read as AI." loading="lazy"></span>
+          <span class="cell"><img src="/p3n/shot-office-640.webp" srcset="/p3n/shot-office-640.webp 640w, /p3n/shot-office-1200.webp 1200w" sizes="(max-width: 760px) 50vw, 30vw" width="1200" height="675" alt="p3n in Word: the p3n pane after a rewrite, No longer reads as AI, 95% to 1%." loading="lazy"></span>
+          <span class="cell"><img src="/p3n/shot-vscode-640.webp" srcset="/p3n/shot-vscode-640.webp 640w, /p3n/shot-vscode-1200.webp 1200w" sizes="(max-width: 760px) 50vw, 30vw" width="1200" height="750" alt="p3n in VS Code: the p3n view next to a Markdown file, Likely AI-written, 96%." loading="lazy"></span>
+          <span class="cell"><img src="/p3n/shot-obsidian-640.webp" srcset="/p3n/shot-obsidian-640.webp 640w, /p3n/shot-obsidian-1200.webp 1200w" sizes="(max-width: 760px) 50vw, 30vw" width="1200" height="800" alt="p3n in Obsidian: the p3n view next to a note, Likely AI-written, 96%." loading="lazy"></span>
         </figure>
       </article>
 

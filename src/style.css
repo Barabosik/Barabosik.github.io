@@ -345,9 +345,17 @@ html.is-grabbing, html.is-grabbing * { cursor: grabbing !important; user-select:
 .project-p3n .shot-compare { grid-column: 1 / span 7; grid-row: 1; }
 .project-p3n .project-text { grid-column: 9 / -1; grid-row: 1; align-self: center; }
 
-/* p3n for Chrome: the extension at work in the store screenshot, text on the left this time */
-.project-p3n-ext .project-text { grid-column: 1 / span 4; grid-row: 1; align-self: center; }
-.project-p3n-ext .shot-main { grid-column: 6 / -1; grid-row: 1; }
+/* p3n's apps: where it runs, as a list like "Works with", and four of them at work; text on the left this time */
+.project-p3n-apps .project-text { grid-column: 1 / span 4; grid-row: 1; align-self: center; }
+.project-p3n-apps .shot-main { grid-column: 6 / -1; grid-row: 1; align-self: center; }
+.apps-list { display: grid; gap: 10px; max-width: 38ch; font-size: var(--step-small); }
+.apps-list li { display: flex; justify-content: space-between; gap: 16px; }
+.apps-list li span:last-child { color: var(--muted); text-align: right; }
+/* the same 16:10 frame for every app, cut from the side where p3n's panel is */
+.shot-apps { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: none; }
+.shot-apps .cell { overflow: hidden; background: var(--surface); }
+.shot-apps img { display: block; aspect-ratio: 16 / 10; object-fit: cover; object-position: right top; }
+.shot-apps .cell:nth-child(3) img { object-position: left top; }
 .compare { position: relative; touch-action: pan-y; cursor: ew-resize; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
 .compare img { display: block; pointer-events: none; -webkit-user-drag: none; }
 /* the old page lies over the new one; the script sets its clip, the line and the knob straight on each element */
@@ -471,6 +479,9 @@ html.is-grabbing, html.is-grabbing * { cursor: grabbing !important; user-select:
   .lineup col.c-org { width: 34%; }
   .lineup col.c-year { width: 20%; }
   .lineup td:nth-child(3) { visibility: hidden; font-size: 0; padding: 0; }
+  /* four columns are too narrow for the list of apps here, so the shots go under the text */
+  .project-p3n-apps .project-text { grid-column: 1 / span 8; }
+  .project-p3n-apps .shot-main { grid-column: 1 / -1; grid-row: 2; margin-top: 56px; }
 }
 
 /* short landscape screens (phones on their side): keep the readout to the move and its note */
@@ -504,8 +515,8 @@ html.is-grabbing, html.is-grabbing * { cursor: grabbing !important; user-select:
   .project-chess .project-text, .project-chess .shot-main, .project-chess .shot-side,
   .project-tether .project-text, .project-tether .shot-small,
   .project-p3n .project-text, .project-p3n .shot-compare,
-  .project-p3n-ext .project-text, .project-p3n-ext .shot-main { grid-column: 1 / -1; grid-row: auto; position: static; margin-top: 0; }
-  .project-p3n .shot-compare, .project-p3n-ext .shot-main { margin-top: 40px; }
+  .project-p3n-apps .project-text, .project-p3n-apps .shot-main { grid-column: 1 / -1; grid-row: auto; position: static; margin-top: 0; }
+  .project-p3n .shot-compare, .project-p3n-apps .shot-main { margin-top: 40px; }
   .compare-tag { top: 8px; padding: 4px 7px; font-size: 0.625rem; }
   .compare-tag.is-before { left: 8px; }
   .compare-tag.is-after { right: 8px; }
@@ -536,7 +547,7 @@ html.is-grabbing, html.is-grabbing * { cursor: grabbing !important; user-select:
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 1ms !important; animation-duration: 1ms !important; }
 }
-.project-title .wd { white-space: nowrap; }
+.project-title .wd, .project-title .nobr { white-space: nowrap; }
 
 /* annotated moves: the analyzer's badge next to the move */
 .move-badge {
