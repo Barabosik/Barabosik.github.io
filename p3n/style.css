@@ -168,6 +168,9 @@ a.badge { position: relative; z-index: 1; color: var(--ink); text-decoration: no
 .badge::before { content: ''; width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--ok); }
 .badge.is-soon { color: var(--muted); }
 .badge.is-soon::before { background: none; box-shadow: inset 0 0 0 1.5px currentColor; }
+/* a plain link, not a status: no dot */
+.badge.is-source { padding-left: 10px; }
+.badge.is-source::before { content: none; }
 
 /* ---------- each app: one row, the same for all ---------- */
 /* No panels: the rows sit on the page, the text on the left and the whole app on the right. */
