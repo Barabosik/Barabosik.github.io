@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Install p3n: Chrome, Word, Excel, VS Code and more</title>
+  <title>Install p3n: Chrome, Firefox, Word, VS Code and more</title>
   <meta name="description" content="Find the AI in any text, then rewrite it, in the app you're writing in. p3n for Chrome, Edge, Brave, Firefox, Word, Excel, VS Code, Sublime Text and Obsidian. Free to try, no account needed.">
   <link rel="canonical" href="https://nikita-andreiev.com/p3n/">
   <meta property="og:type" content="website">
@@ -83,12 +83,11 @@
       <div class="wrap hero-in">
         <div class="hero-copy">
           <h1>p3n, wherever you write</h1>
-          <p class="lead">Find the AI in any text, then rewrite it, right where you write: your browser, Word and Excel, VS Code, Sublime Text and Obsidian.</p>
+          <p class="lead">Find the AI in any text, then rewrite it, right where you write: Chrome and Firefox, Word and Excel, VS Code, Sublime Text and Obsidian.</p>
           <div class="actions">
             <a class="btn btn-accent" href="https://chromewebstore.google.com/detail/bingopgkcgafmnpkoeckijkcbnfmchnh" data-hero-install>Add to Chrome</a>
             <a class="btn btn-ghost" href="#apps">All apps</a>
           </div>
-          <p class="note" data-firefox-note hidden>On Firefox? Its version is in review at Firefox Add-ons, coming soon.</p>
           <p class="note">Free for 10 checks or rewrites an hour. No account needed.</p>
         </div>
 
@@ -117,7 +116,7 @@
 
         <ul class="glance" aria-label="Every p3n app and where it stands">
           <li><a class="card-link" href="#browser"><b>Chrome</b></a><span>Right-click text on any page. Edge and Brave install it too.</span><a class="badge" href="https://chromewebstore.google.com/detail/bingopgkcgafmnpkoeckijkcbnfmchnh">Add to Chrome</a></li>
-          <li><a class="card-link" href="#firefox"><b>Firefox</b></a><span>The same extension, in Firefox's sidebar.</span><em class="badge" data-firefox-badge>Add to Firefox</em></li>
+          <li><a class="card-link" href="#browser"><b>Firefox</b></a><span>The same extension, in Firefox's sidebar.</span><a class="badge" href="https://addons.mozilla.org/firefox/addon/p3n/">Add to Firefox</a></li>
           <li><a class="card-link" href="#office"><b>Word</b></a><span>Check for AI on the Home tab. Replace keeps each paragraph's style.</span><em class="badge">Install</em></li>
           <li><a class="card-link" href="#office"><b>Excel</b></a><span>Select cells, then Check for AI on the Home tab.</span><em class="badge">Install</em></li>
           <li><a class="card-link" href="#docs"><b>Google Docs</b></a><span>Check and rewrite in a sidebar, under Extensions › p3n.</span><a class="badge is-source" href="https://github.com/Barabosik/p3n-google-docs-addon">Source on GitHub</a></li>
@@ -135,16 +134,13 @@
       <div class="wrap">
         <article class="app" id="browser" aria-labelledby="browser-title">
           <div class="app-text">
-            <h3 id="browser-title">Chrome, Edge and Brave</h3>
-            <p>Select text on any page, right-click and pick p3n, then Check for AI. The score, the reasons and a rewrite open in the side panel, and Replace puts the rewrite where your text was.</p>
+            <h3 id="browser-title">Chrome, Firefox, Edge and Brave</h3>
+            <p>Select text on any page, right-click and pick p3n, then Check for AI. The score, the reasons and a rewrite open in the side panel (the sidebar in Firefox), and Replace puts the rewrite where your text was.</p>
             <a class="btn btn-accent" href="https://chromewebstore.google.com/detail/bingopgkcgafmnpkoeckijkcbnfmchnh">Add to Chrome</a>
             <p class="where">Chrome Web Store. Edge and Brave install it from there too.</p>
             <div class="also" id="firefox">
-              <p class="where is-soon" data-firefox-status hidden><b>Firefox:</b> in review, coming soon. The same extension, in Firefox's sidebar, for Firefox 140 or later.</p>
-              <div data-firefox-install>
-                <a class="btn btn-accent" href="https://addons.mozilla.org/firefox/addon/p3n/">Add to Firefox</a>
-                <p class="where">Firefox Add-ons, for Firefox 140 or later.</p>
-              </div>
+              <a class="btn btn-accent" href="https://addons.mozilla.org/firefox/addon/p3n/">Add to Firefox</a>
+              <p class="where">Firefox Add-ons, for Firefox 140 or later.</p>
             </div>
           </div>
           <figure class="app-shot">
@@ -358,27 +354,12 @@
     </div>
   </footer>
   <script>
-    // Firefox Add-ons listing (live since 2026-10-23): the Firefox row gets an Add to Firefox button, its card at the
-    // top says so, and visitors on Firefox get it as the page's main button. Empty it to go back to "in review".
-    var FIREFOX_URL = 'https://addons.mozilla.org/firefox/addon/p3n/';
-
+    // Visitors on Firefox get Add to Firefox as the page's main button.
     (function () {
-      var onFirefox = /\bFirefox\//.test(navigator.userAgent);
-      if (FIREFOX_URL) {
-        var install = document.querySelector('[data-firefox-install]');
-        install.querySelector('a').href = FIREFOX_URL;
-        install.hidden = false;
-        document.querySelector('[data-firefox-status]').hidden = true;
-        var badge = document.querySelector('[data-firefox-badge]');
-        badge.textContent = 'Add to Firefox';
-        badge.classList.remove('is-soon');
-      }
-      if (onFirefox && FIREFOX_URL) {
+      if (/\bFirefox\//.test(navigator.userAgent)) {
         var hero = document.querySelector('[data-hero-install]');
-        hero.href = FIREFOX_URL;
+        hero.href = 'https://addons.mozilla.org/firefox/addon/p3n/';
         hero.textContent = 'Add to Firefox';
-      } else if (onFirefox) {
-        document.querySelector('[data-firefox-note]').hidden = false;
       }
     })();
 
