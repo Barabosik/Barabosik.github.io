@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://nikita-andreiev.com/sitemap.xml

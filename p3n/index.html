@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Install p3n: Chrome, Firefox, Word, VS Code and more</title>
+  <meta name="description" content="Find the AI in any text, then rewrite it, in the app you're writing in. p3n for Chrome, Edge, Brave, Firefox, Word, Excel, VS Code, Sublime Text and Obsidian. Free to try, no account needed.">
+  <link rel="canonical" href="https://nikita-andreiev.com/p3n/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="p3n">
+  <meta property="og:url" content="https://nikita-andreiev.com/p3n/">
+  <meta property="og:title" content="p3n, wherever you write">
+  <meta property="og:description" content="Find the AI in any text, then rewrite it, in Chrome, Firefox, Word, Excel, VS Code, Sublime Text and Obsidian.">
+  <meta property="og:image" content="https://nikita-andreiev.com/p3n/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="p3n, wherever you write: Chrome, Firefox, Word, Excel, VS Code, Sublime Text and Obsidian.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#fbfaf7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#16130f" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="/p3n/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/p3n/apple-touch-icon.png">
+  <link rel="preload" href="/p3n/inter.woff2" as="font" type="font/woff2" crossorigin>
+  <script>
+    // System, Light or Dark, from the pill in the footer, as on p3n.si. System (the default) follows the OS; Light and
+    // Dark are kept in localStorage['p3n-theme'] (not 'theme': the other pages on this domain share the storage).
+    // Runs before the first paint, so a stored choice never flashes the other theme.
+    (function () {
+      var root = document.documentElement, os = matchMedia('(prefers-color-scheme: dark)'), page = { light: '#fbfaf7', dark: '#16130f' };
+      var kept = 'system'; // the choice for this page view when storage is blocked
+      function stored() { try { var t = localStorage.getItem('p3n-theme'); return t === 'light' || t === 'dark' ? t : kept; } catch (e) { return kept; } }
+      function apply() {
+        var choice = stored();
+        choice === 'system' ? root.removeAttribute('data-theme') : root.setAttribute('data-theme', choice);
+        document.querySelectorAll('meta[name=theme-color]').forEach(function (m) {
+          m.content = page[choice === 'system' ? (m.media.indexOf('dark') > -1 ? 'dark' : 'light') : choice];
+        });
+        document.querySelectorAll('[data-theme-set]').forEach(function (b) { b.setAttribute('aria-checked', b.dataset.themeSet === choice); });
+      }
+      apply();
+      os.addEventListener('change', apply);
+      addEventListener('storage', function (e) {
+        if (e.key !== 'p3n-theme') return;
+        kept = e.newValue === 'light' || e.newValue === 'dark' ? e.newValue : 'system';
+        apply();
+      });
+      document.addEventListener('DOMContentLoaded', apply);
+      document.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-theme-set]');
+        if (!b) return;
+        kept = b.dataset.themeSet;
+        try { kept === 'system' ? localStorage.removeItem('p3n-theme') : localStorage.setItem('p3n-theme', kept); } catch (err) {}
+        root.classList.add('theme-flip'); // the whole page changes at once: no button fading in after the rest
+        apply();
+        getComputedStyle(root).color;
+        requestAnimationFrame(function () { root.classList.remove('theme-flip'); });
+      });
+    })();
+  </script>
+  <link rel="stylesheet" crossorigin href="/assets/p3n-1_sXkrmn.css">
+</head>
+<body>
+  <a class="skip" href="#apps">Skip to the apps</a>
+
+  <header class="bar">
+    <div class="wrap bar-in">
+      <a class="logo" href="/p3n/" aria-label="p3n apps, home">
+        <img class="pen pen-light" src="/p3n/logo-96.png" width="40" height="40" alt="">
+        <img class="pen pen-dark" src="/p3n/logo-96-dark.png" width="40" height="40" alt="">
+        <span class="mark">p<span>3</span>n</span>
+      </a>
+      <nav aria-label="p3n">
+        <a href="https://p3n.si/">p3n.si</a>
+        <a href="https://p3n.si/docs">Docs</a>
+        <a href="https://github.com/zdresearch/p3n">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap hero-in">
+        <div class="hero-copy">
+          <h1>p3n, wherever you write</h1>
+          <p class="lead">Find the AI in any text, then rewrite it, right where you write: Chrome and Firefox, Word and Excel, VS Code, Sublime Text and Obsidian.</p>
+          <div class="actions">
+            <a class="btn btn-accent" href="https://chromewebstore.google.com/detail/bingopgkcgafmnpkoeckijkcbnfmchnh" data-hero-install>Add to Chrome</a>
+            <a class="btn btn-ghost" href="#apps">All apps</a>
+          </div>
+          <p class="note">Free for 10 checks or rewrites an hour. No account needed.</p>
+        </div>
+
+        <figure class="sample" data-ui>
+          <div class="sample-part">
+            <p class="sample-head"><span>Your text</span><b>95% AI</b></p>
+            <span class="meter is-ai" aria-hidden="true"><i style="width: 95%"></i></span>
+            <p class="sample-before">Ultimately, this seamless transition unlocks a rich tapestry of possibilities for teams of all sizes, empowering everyone to thrive in an ever-evolving landscape.</p>
+          </div>
+          <div class="sample-part sample-after">
+            <p class="sample-head"><span>p3n's rewrite</span><b>1% AI</b></p>
+            <span class="meter" aria-hidden="true"><i style="width: 1%"></i></span>
+            <p>This transition helps teams of all sizes.</p>
+          </div>
+          <figcaption>A real rewrite by p3n: the filler goes, the fact stays.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="apps" id="apps" aria-labelledby="apps-title">
+      <div class="wrap">
+        <div class="apps-head">
+          <h2 id="apps-title">Pick the app you write in</h2>
+          <p>Each one checks the text you select, shows the sentences that give it away, and rewrites it in place.</p>
+        </div>
+
+        <ul class="glance" aria-label="Every p3n app and where it stands">
+          <li><a class="card-link" href="#browser"><b>Chrome</b></a><span>Right-click text on any page. Edge and Brave install it too.</span><a class="badge" href="https://chromewebstore.google.com/detail/bingopgkcgafmnpkoeckijkcbnfmchnh">Add to Chrome</a></li>
+          <li><a class="card-link" href="#browser"><b>Firefox</b></a><span>The same extension, in Firefox's sidebar.</span><a class="badge" href="https://addons.mozilla.org/firefox/addon/p3n/">Add to Firefox</a></li>
+          <li><a class="card-link" href="#office"><b>Word</b></a><span>Check for AI on the Home tab. Replace keeps each paragraph's style.</span><em class="badge">Install</em></li>
+          <li><a class="card-link" href="#office"><b>Excel</b></a><span>Select cells, then Check for AI on the Home tab.</span><em class="badge">Install</em></li>
+          <li><a class="card-link" href="#docs"><b>Google Docs</b></a><span>Check and rewrite in a sidebar, under Extensions › p3n.</span><a class="badge is-source" href="https://github.com/Barabosik/p3n-google-docs-addon">Source on GitHub</a></li>
+          <li><a class="card-link" href="#vscode"><b>VS Code</b></a><span>Select text in any file. VSCodium, Cursor and Windsurf too.</span><a class="badge" href="vscode:extension/nikita-andreiev.p3n-vscode">Install in VS Code</a></li>
+          <li><a class="card-link" href="#obsidian"><b>Obsidian</b></a><span>Check and rewrite your notes, on desktop and mobile.</span><a class="badge" href="obsidian://show-plugin?id=ai-pen">Open in Obsidian</a></li>
+          <li><a class="card-link" href="#sublime"><b>Sublime Text</b></a><span>Check and rewrite selected text in Sublime Text 4.</span><em class="badge">Install with Package Control</em></li>
+        </ul>
+
+      </div>
+    </section>
+
+    <!-- One row per app, all the same: what it does, one install button, where it comes from, and the slower ways
+         folded away under the button. The picture is the whole app, not a crop (phones get a close-up of the panel). -->
+    <section class="install" aria-label="Install each app">
+      <div class="wrap">
+        <article class="app" id="browser" aria-labelledby="browser-title">
+          <div class="app-text">
+            <h3 id="browser-title">Chrome, Firefox, Edge and Brave</h3>
+            <p>Select text on any page, right-click and pick p3n, then Check for AI. The score, the reasons and a rewrite open in the side panel (the sidebar in Firefox), and Replace puts the rewrite where your text was.</p>
+            <a class="btn btn-accent" href="https://chromewebstore.google.com/detail/bingopgkcgafmnpkoeckijkcbnfmchnh">Add to Chrome</a>
+            <p class="where">Chrome Web Store. Edge and Brave install it from there too.</p>
+            <div class="also" id="firefox">
+              <a class="btn btn-accent" href="https://addons.mozilla.org/firefox/addon/p3n/">Add to Firefox</a>
+              <p class="where">Firefox Add-ons, for Firefox 140 or later.</p>
+            </div>
+          </div>
+          <figure class="app-shot">
+            <picture>
+              <source media="(max-width: 560px)" srcset="/p3n/shot-chrome-phone.webp" width="800" height="600">
+              <img src="/p3n/shot-chrome-1200.webp" srcset="/p3n/shot-chrome-640.webp 640w, /p3n/shot-chrome-1200.webp 1200w" sizes="(max-width: 960px) 100vw, 640px" width="1200" height="750" loading="lazy" alt="p3n's side panel in Chrome next to a blog post: Likely AI-written, 94%, with the two sentences that read as AI.">
+            </picture>
+          </figure>
+        </article>
+
+        <article class="app" id="office" aria-labelledby="office-title">
+          <div class="app-text">
+            <h3 id="office-title">Word and Excel</h3>
+            <p>Select text in Word, or cells in Excel, and click Check for AI on the Home tab. Replace puts the rewrite back with each paragraph's style, and Ctrl+Z undoes it.</p>
+            <a class="btn btn-accent" href="https://nikita-andreiev.com/p3n-office-addin/manifest.xml" download="p3n-manifest.xml">Download the manifest</a>
+            <p class="where">p3n isn't in Microsoft's add-in store yet, so you add it once from this file. It loads from the web after that, so it updates by itself.</p>
+            <details class="ways">
+              <summary>How to add it</summary>
+              <h4>Word or Excel on the web</h4>
+              <ol>
+                <li>Open a document.</li>
+                <li>Choose Home › Add-ins › More Settings › Upload My Add-in, and upload the file. This browser keeps it.</li>
+              </ol>
+              <p class="more-link"><a href="https://learn.microsoft.com/office/dev/add-ins/testing/sideload-office-add-ins-for-testing#manually-sideload-an-add-in-to-office-on-the-web">Microsoft's steps</a></p>
+              <h4>Windows</h4>
+              <ol>
+                <li>Share a folder and put the file in it.</li>
+                <li>In Word or Excel, add the folder's network path under File › Options › Trust Center › Trust Center Settings › Trusted Add-in Catalogs, tick Show in Menu and restart.</li>
+                <li>Choose Home › Add-ins › Advanced › Shared Folder › p3n.</li>
+              </ol>
+              <p class="more-link"><a href="https://learn.microsoft.com/office/dev/add-ins/testing/create-a-network-shared-folder-catalog-for-task-pane-and-content-add-ins">Microsoft's steps</a></p>
+              <h4>Mac</h4>
+              <ol>
+                <li>Copy the file to this folder (for Excel, <code>com.microsoft.Excel</code>; make the <code>wef</code> folder if it's missing):<code class="path">~/Library/<wbr>Containers/<wbr>com.microsoft.Word/<wbr>Data/<wbr>Documents/<wbr>wef</code></li>
+                <li>Restart the app, then choose Home › Add-ins › p3n.</li>
+              </ol>
+              <p class="more-link"><a href="https://learn.microsoft.com/office/dev/add-ins/testing/sideload-an-office-add-in-on-mac">Microsoft's steps</a></p>
+            </details>
+          </div>
+          <figure class="app-shot">
+            <picture>
+              <source media="(max-width: 560px)" srcset="/p3n/shot-office-phone.webp" width="800" height="600">
+              <img src="/p3n/shot-office-1200.webp" srcset="/p3n/shot-office-640.webp 640w, /p3n/shot-office-1200.webp 1200w" sizes="(max-width: 960px) 100vw, 640px" width="1200" height="675" loading="lazy" alt="p3n in Word: the Check for AI button on the Home tab, and the p3n pane after a rewrite, No longer reads as AI, 95% to 1%, with the rewrite replaced in the document.">
+            </picture>
+          </figure>
+        </article>
+
+        <article class="app" id="docs" aria-labelledby="docs-title">
+          <div class="app-text">
+            <h3 id="docs-title">Google Docs</h3>
+            <p>Select text in a doc and open Extensions › p3n. Check and rewrite in the sidebar; Replace selection keeps headings, lists and formatting, and one Ctrl+Z undoes it.</p>
+            <a class="btn btn-ghost" href="https://github.com/Barabosik/p3n-google-docs-addon">Source on GitHub</a>
+          </div>
+          <figure class="app-shot">
+            <picture>
+              <source media="(max-width: 560px)" srcset="/p3n/shot-docs-phone.webp" width="800" height="600">
+              <img src="/p3n/shot-docs-1200.webp" srcset="/p3n/shot-docs-640.webp 640w, /p3n/shot-docs-1200.webp 1200w" sizes="(max-width: 960px) 100vw, 640px" width="1200" height="750" loading="lazy" alt="The p3n sidebar in Google Docs: AI-written, then humanized, 97% likely AI, with the sentences that read as AI.">
+            </picture>
+          </figure>
+        </article>
+
+        <article class="app" id="vscode" aria-labelledby="vscode-title">
+          <div class="app-text">
+            <h3 id="vscode-title">VS Code</h3>
+            <p>Select text in any file and run p3n: Check for AI or p3n: Rewrite, from the right-click menu or the command palette. Results open in the p3n view beside your text, and Replace selection is one undo step.</p>
+            <div class="get">
+              <a class="btn btn-accent" href="vscode:extension/nikita-andreiev.p3n-vscode">Install in VS Code</a>
+              <a class="alt" href="https://marketplace.visualstudio.com/items?itemName=nikita-andreiev.p3n-vscode">Not opening? Marketplace page</a>
+            </div>
+            <p class="where">Visual Studio Marketplace, for VS Code 1.90 or later. It updates itself from there.</p>
+            <details class="ways">
+              <summary>Other ways to install</summary>
+              <h4>From VS Code</h4>
+              <p>Search for p3n in the Extensions view (Ctrl+Shift+X) and click Install.</p>
+              <h4>VSCodium, Cursor and Windsurf</h4>
+              <p>These install from Open VSX, and p3n is there too. Open it in <a href="vscodium:extension/nikita-andreiev.p3n-vscode">VSCodium</a>, <a href="cursor:extension/nikita-andreiev.p3n-vscode">Cursor</a> or <a href="windsurf:extension/nikita-andreiev.p3n-vscode">Windsurf</a>, or search for p3n in the Extensions view and click Install. It updates itself from there.</p>
+              <p class="more-link"><a href="https://open-vsx.org/extension/nikita-andreiev/p3n-vscode">p3n on Open VSX</a></p>
+              <p class="more-link"><a href="https://github.com/Barabosik/p3n-vscode#install">Full steps, and the .vsix file</a></p>
+            </details>
+          </div>
+          <figure class="app-shot">
+            <picture>
+              <source media="(max-width: 560px)" srcset="/p3n/shot-vscode-phone.webp" width="800" height="600">
+              <img src="/p3n/shot-vscode-1200.webp" srcset="/p3n/shot-vscode-640.webp 640w, /p3n/shot-vscode-1200.webp 1200w" sizes="(max-width: 960px) 100vw, 640px" width="1200" height="750" loading="lazy" alt="p3n in VS Code: the p3n view next to a Markdown file, Likely AI-written, 96%, with the sentences that read as AI.">
+            </picture>
+          </figure>
+        </article>
+
+        <article class="app" id="obsidian" aria-labelledby="obsidian-title">
+          <div class="app-text">
+            <h3 id="obsidian-title">Obsidian</h3>
+            <p>Select text in a note and run p3n: Check for AI or p3n: Rewrite, from the right-click menu or the command palette. Results open in a side view next to the note, on desktop and mobile, and Replace selection is one undo step.</p>
+            <div class="get">
+              <a class="btn btn-accent" href="obsidian://show-plugin?id=ai-pen">Open in Obsidian</a>
+              <a class="alt" href="https://community.obsidian.md/plugins/ai-pen">Not opening? Plugin directory</a>
+            </div>
+            <p class="where">Obsidian's Community plugins. It updates itself from there.</p>
+            <details class="ways">
+              <summary>Other ways to install</summary>
+              <h4>From Obsidian</h4>
+              <p>Open Settings › Community plugins › Browse, search for p3n, then Install and Enable.</p>
+              <h4>By hand</h4>
+              <p>Copy <code>main.js</code>, <code>manifest.json</code> and <code>styles.css</code> from <a href="https://github.com/Barabosik/p3n-obsidian/releases/latest">the GitHub release</a> into this folder, then turn on p3n in Settings › Community plugins:<code class="path">&lt;your vault&gt;/<wbr>.obsidian/<wbr>plugins/<wbr>ai-pen/</code></p>
+              <p class="more-link"><a href="https://github.com/Barabosik/p3n-obsidian#install">Full steps</a></p>
+            </details>
+          </div>
+          <figure class="app-shot">
+            <picture>
+              <source media="(max-width: 560px)" srcset="/p3n/shot-obsidian-phone.webp" width="800" height="600">
+              <img src="/p3n/shot-obsidian-1200.webp" srcset="/p3n/shot-obsidian-640.webp 640w, /p3n/shot-obsidian-1200.webp 1200w" sizes="(max-width: 960px) 100vw, 640px" width="1200" height="800" loading="lazy" alt="p3n in Obsidian: the p3n view next to a note, Likely AI-written, 96%, with the sentences that read as AI.">
+            </picture>
+          </figure>
+        </article>
+
+        <article class="app" id="sublime" aria-labelledby="sublime-title">
+          <div class="app-text">
+            <h3 id="sublime-title">Sublime Text</h3>
+            <p>Select text and run p3n: Check for AI or p3n: Rewrite, from the right-click menu or the command palette. Results show right under your text, and Replace selection is one undo step.</p>
+            <h4 class="steps-title">Install with Package Control</h4>
+            <ol class="steps">
+              <li>
+                Open the command palette (Ctrl+Shift+P, or Cmd+Shift+P on a Mac), run Package Control: Add Repository, paste this address and press Enter:
+                <span class="copy-field">
+                  <code>https://raw.<wbr>githubusercontent.com/<wbr>Barabosik/<wbr>p3n-sublime/<wbr>main/<wbr>repository.json</code>
+                  <button class="btn btn-accent" type="button" data-copy="https://raw.githubusercontent.com/Barabosik/p3n-sublime/main/repository.json" aria-live="polite">Copy</button>
+                </span>
+              </li>
+              <li>Run Package Control: Install Package and choose p3n. Package Control keeps it up to date from then on.</li>
+            </ol>
+            <p class="steps-note">No Package Control commands in the palette? Run Install Package Control first.</p>
+            <p class="where is-soon">Listing in review, for Sublime Text 4 (build 4107 or later). Once <a href="https://github.com/sublimehq/package_control_channel/pull/9627">Package Control's review</a> is done, step 1 goes away.</p>
+            <details class="ways">
+              <summary>Other ways to install</summary>
+              <h4>By hand</h4>
+              <p>This way it doesn't update itself.</p>
+              <ol>
+                <li>Choose Preferences › Browse Packages….</li>
+                <li>Unzip <a href="https://github.com/Barabosik/p3n-sublime/archive/refs/heads/main.zip">the ZIP</a> there and rename the folder to exactly <code>p3n</code>. Or run this in that folder:<code class="path">git clone https://github.com/<wbr>Barabosik/<wbr>p3n-sublime.git p3n</code></li>
+                <li>Restart Sublime Text.</li>
+              </ol>
+              <p class="more-link"><a href="https://github.com/Barabosik/p3n-sublime#install">Full steps</a></p>
+            </details>
+          </div>
+          <figure class="app-shot">
+            <picture>
+              <source media="(max-width: 560px)" srcset="/p3n/shot-sublime-phone.webp" width="800" height="600">
+              <img src="/p3n/shot-sublime-1200.webp" srcset="/p3n/shot-sublime-640.webp 640w, /p3n/shot-sublime-1200.webp 1200w" sizes="(max-width: 960px) 100vw, 640px" width="1200" height="771" loading="lazy" alt="p3n in Sublime Text: the result right under the selected paragraph, Likely AI-written, 96%, with the sentences that read as AI.">
+            </picture>
+          </figure>
+        </article>
+      </div>
+    </section>
+    <section class="facts" aria-label="Privacy, price and source">
+      <div class="wrap facts-in">
+        <p class="statement">Your text goes to api.p3n.si only when you click. No history, no analytics.</p>
+        <div class="fact">
+          <h2>Free to start</h2>
+          <p>10 checks or rewrites an hour without an account, up to 5,000 characters each. For more, make an API key at <a href="https://p3n.si/">p3n.si</a> and paste it into the app.</p>
+        </div>
+        <div class="fact">
+          <h2>Open source</h2>
+          <p>Every app is MIT-licensed on GitHub: the <a href="https://github.com/Barabosik/p3n-chrome-extension">browser extension</a>, the <a href="https://github.com/Barabosik/p3n-office-addin">Word and Excel add-in</a>, the <a href="https://github.com/Barabosik/p3n-google-docs-addon">Google Docs add-on</a>, and the plugins for <a href="https://github.com/Barabosik/p3n-vscode">VS Code</a>, <a href="https://github.com/Barabosik/p3n-sublime">Sublime Text</a> and <a href="https://github.com/Barabosik/p3n-obsidian">Obsidian</a>.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="more" aria-labelledby="more-title">
+      <div class="wrap more-in">
+        <h2 id="more-title">The rest of p3n</h2>
+        <ul class="links">
+          <li>
+            <a href="https://p3n.si/">
+              <b>p3n.si</b>
+              <span>The hosted API behind the apps. Try AI detection free on the home page.</span>
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h10m-4-4 4 4-4 4"/></svg>
+            </a>
+          </li>
+          <li>
+            <a href="https://p3n.si/docs">
+              <b>API docs</b>
+              <span>Call the same skills from your own code, with a key from your account.</span>
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h10m-4-4 4 4-4 4"/></svg>
+            </a>
+          </li>
+          <li>
+            <a href="https://github.com/zdresearch/p3n">
+              <b>Skills on GitHub</b>
+              <span>The open-source writing skills: AI Detection, Deslop, Humanize and Editorial.</span>
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h10m-4-4 4 4-4 4"/></svg>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap foot-in">
+      <p>The p3n apps are made by <a href="/">Nikita Andreiev</a>.</p>
+      <div class="theme" role="radiogroup" aria-label="Theme">
+        <button type="button" data-theme-set="system" role="radio" aria-checked="true" aria-label="System" title="System">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.75" y="3.75" width="14.5" height="10" rx="1.5"/><path d="M7 16.75h6M10 13.75v3"/></svg>
+        </button>
+        <button type="button" data-theme-set="light" role="radio" aria-checked="false" aria-label="Light" title="Light">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3.25"/><path d="M10 2.5v1.5M10 16v1.5M2.5 10H4M16 10h1.5M4.7 4.7l1.05 1.05M14.25 14.25l1.05 1.05M4.7 15.3l1.05-1.05M14.25 5.75l1.05-1.05"/></svg>
+        </button>
+        <button type="button" data-theme-set="dark" role="radio" aria-checked="false" aria-label="Dark" title="Dark">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.25 12.1A6.5 6.5 0 0 1 7.9 3.75a6.5 6.5 0 1 0 8.35 8.35z"/></svg>
+        </button>
+      </div>
+    </div>
+  </footer>
+  <script>
+    // Visitors on Firefox get Add to Firefox as the page's main button.
+    (function () {
+      if (/\bFirefox\//.test(navigator.userAgent)) {
+        var hero = document.querySelector('[data-hero-install]');
+        hero.href = 'https://addons.mozilla.org/firefox/addon/p3n/';
+        hero.textContent = 'Add to Firefox';
+      }
+    })();
+
+    // Copy buttons (Sublime's repository address). Where the clipboard is blocked, the address gets selected instead,
+    // so Ctrl+C still works.
+    document.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-copy]');
+      if (!b) return;
+      function show(text) { b.textContent = text; clearTimeout(b.reset); b.reset = setTimeout(function () { b.textContent = 'Copy'; }, 2000); }
+      function select() {
+        var r = document.createRange(); r.selectNodeContents(b.previousElementSibling);
+        var s = getSelection(); s.removeAllRanges(); s.addRange(r);
+        show('Selected');
+      }
+      if (!navigator.clipboard) return select();
+      navigator.clipboard.writeText(b.dataset.copy).then(function () { show('Copied'); }, select);
+    });
+  </script>
+</body>
+</html>
